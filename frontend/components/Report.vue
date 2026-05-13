@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatEUR, parseEuroToCents, centsToEuroString } from '~/utils/format'
-import { DENOMS } from '~/utils/denoms'
+import { DENOMS, NOTES, COINS } from '~/utils/denoms'
 
 const shift = useShiftStore()
 const sales = useSalesStore()
@@ -130,6 +130,29 @@ function printPage() {
                 :value="openingDisplay"
                 @change="(e) => onOpeningChange((e.target as HTMLInputElement).value)"
                 placeholder="0,00" />
+            </div>
+          </div>
+
+          <div class="money-section">
+            <div class="money-label">Scheine</div>
+            <div class="money-grid notes-grid">
+              <button
+                v-for="n in NOTES"
+                :key="n.cents"
+                :class="['note', `note-${n.cents / 100}`]"
+                @click="counts[n.cents]++">
+                <span class="v">{{ n.label }}</span>
+              </button>
+            </div>
+            <div class="money-label">Münzen</div>
+            <div class="money-grid coins-grid">
+              <button
+                v-for="c in COINS"
+                :key="c.cents"
+                :class="['coin', c.cents >= 100 ? `coin-eu${c.cents / 100}` : (c.cents === 50 ? 'coin-au' : 'coin-cu')]"
+                @click="counts[c.cents]++">
+                <span class="v">{{ c.label }}</span>
+              </button>
             </div>
           </div>
 

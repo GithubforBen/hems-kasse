@@ -30,7 +30,7 @@ public class EpcQrService {
         Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M); // EPC recommendation
         hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-        hints.put(EncodeHintType.MARGIN, 2);
+        hints.put(EncodeHintType.MARGIN, 4); // EPC069-12 requires ≥4 module quiet zone
 
         try {
             BitMatrix matrix = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, dim, dim, hints);
