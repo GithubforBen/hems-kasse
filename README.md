@@ -25,13 +25,40 @@ hems-kasse/
     └── app.vue, pages/, components/, stores/, utils/, assets/css/
 ```
 
-## Voraussetzungen
+## Schnellstart mit Docker (empfohlen)
+
+```bash
+cp .env.example .env
+# .env bearbeiten: KASSE_CLASS_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
+#                   KASSE_EPC_NAME / KASSE_EPC_IBAN, optional POSTGRES_PASSWORD …
+
+docker compose up --build
+# Frontend → http://localhost:3000
+# Backend  → http://localhost:8080
+# Postgres → localhost:5432 (Volume: kasse-pgdata, bleibt zwischen Neustarts erhalten)
+```
+
+Drei Services werden gebaut und gestartet:
+
+| Service   | Image                            | Was       | Port |
+| --------- | -------------------------------- | --------- | ---- |
+| `db`      | `postgres:16-alpine`             | Datenbank | 5432 |
+| `backend` | `schulkasse-backend:latest`      | Spring Boot (`backend/Dockerfile`, mehrstufig) | 8080 |
+| `frontend`| `schulkasse-frontend:latest`     | Nuxt 3 (`frontend/Dockerfile`, mehrstufig) | 3000 |
+
+Compose liest die Variablen aus `./.env`. Mit `docker compose down -v` werden auch die Daten gelöscht; `docker compose logs -f backend` zeigt Live-Logs.
+
+Mehrere Hosts? Setze `NUXT_PUBLIC_API_BASE` und `KASSE_CORS_ORIGINS` in der `.env` auf die öffentlichen URLs (z. B. `https://kasse.example.org`).
+
+## Lokale Entwicklung ohne Docker
+
+### Voraussetzungen
 
 - Java 21, Maven 3.9+
 - Node 22+, pnpm (oder npm)
 - PostgreSQL 14+ erreichbar (siehe `backend/.env.example`)
 
-## Backend starten
+### Backend starten
 
 ```bash
 cd backend
@@ -78,7 +105,7 @@ KASSE_CORS_ORIGINS=http://localhost:3000
 
 Die IBAN wird beim Start gegen ISO 7064 (mod-97) geprüft — eine ungültige IBAN führt zu einem Fehlstart, sodass die Kartenzahlung nicht stillschweigend kaputtgeht.
 
-## Frontend starten
+### Frontend starten
 
 ```bash
 cd frontend
