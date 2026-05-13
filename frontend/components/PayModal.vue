@@ -89,26 +89,25 @@ async function finishCard() {
   }
 }
 
-const { public: { apiBase } } = useRuntimeConfig()
-const auth = useAuthStore()
-// img src is loaded by the browser, which can't send Authorization headers — fall back to including the token as a URL hint?
-// The QR endpoint requires auth. To avoid leaking the JWT in URLs, we fetch the PNG via $fetch and turn it into a blob URL.
+// QR endpoint requires auth — fetch as blob to avoid leaking JWT in the img src URL.
+const api = useApi()
 const qrUrl = ref<string | null>(null)
 let qrAbort: AbortController | null = null
 
 async function loadQr(amount: number) {
   qrAbort?.abort()
-  qrAbort = new AbortController()
+  const abort = new AbortController()
+  qrAbort = abort
+  const prevUrl = qrUrl.value
   qrUrl.value = null
+  if (prevUrl) URL.revokeObjectURL(prevUrl)
   try {
-    const blob = await $fetch<Blob>(`${apiBase}/api/payments/epc-qr.png`, {
+    const blob = await api<Blob>('/api/payments/epc-qr.png', {
       query: { amountCents: amount, ref: new Date().toISOString().slice(0, 16) },
       responseType: 'blob',
-      headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {},
-      signal: qrAbort.signal,
-    } as any)
-    if (qrUrl.value) URL.revokeObjectURL(qrUrl.value)
-    qrUrl.value = URL.createObjectURL(blob)
+      signal: abort.signal,
+    })
+    qrUrl.value = URL.createObjectURL(blob as Blob)
   } catch (e: any) {
     if (e?.name !== 'AbortError') cardError.value = 'QR-Code konnte nicht geladen werden.'
   }
