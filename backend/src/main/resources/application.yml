@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: schulkasse
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/kasse}
+    username: ${SPRING_DATASOURCE_USERNAME:kasse}
+    password: ${SPRING_DATASOURCE_PASSWORD:kasse}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: ${KASSE_BACKEND_PORT:8080}
+  forward-headers-strategy: framework
+  error:
+    include-message: always
+
+kasse:
+  jwt:
+    secret: ${KASSE_JWT_SECRET}
+    ttl-hours: ${KASSE_JWT_TTL_HOURS:12}
+  cors:
+    origins: ${KASSE_CORS_ORIGINS:http://localhost:3000}
+  classes: ${KASSE_CLASS_PASSWORDS:}
+  admins: ${KASSE_ADMIN_USERS:}
+  epc:
+    name: ${KASSE_EPC_NAME:}
+    iban: ${KASSE_EPC_IBAN:}
+    bic: ${KASSE_EPC_BIC:}
+    purpose: ${KASSE_EPC_PURPOSE:}
+    remittance: ${KASSE_EPC_REMITTANCE:Kuchenverkauf}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    de.hems.kasse: DEBUG
