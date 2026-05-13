@@ -137,6 +137,27 @@ Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statische
 | GET  | `/api/me/pref`, PUT | jeder eingeloggt | Theme-Pref |
 | GET  | `/api/payments/epc-qr.png?amountCents=…` | jeder eingeloggt | EPC-QR PNG |
 | GET  | `/api/payments/epc-payload?amountCents=…` | jeder eingeloggt | Roher EPC-Text (Debug) |
+| GET  | `/api/shifts/{id}/export.csv?type=…` | Besitzer ODER ADMIN | CSV einer einzelnen Schicht |
+| GET  | `/api/shifts/mine/export.csv?type=…` | jeder eingeloggt | CSV aller eigenen Schichten |
+| GET  | `/api/shifts/export.csv?type=…&from=&to=&klasse=&q=` | ADMIN | CSV aller Schichten (gefiltert) |
+
+### CSV-Export-Typen (`?type=…`)
+
+Vier vordefinierte Berichte, alle in Excel-freundlichem Format (UTF-8 mit BOM, `;` als Trenner, deutsche Dezimalkommas):
+
+| Typ | Inhalt |
+| --- | --- |
+| `shifts` (Default für `mine`/`export.csv`) | Eine Zeile pro Schicht: Datum, Person, Klasse, Anfangsbestand, Umsatz Bar/Karte/Gesamt, **Soll/Ist/Diff**, Bons, Artikel, Anmerkungen |
+| `sales` | Eine Zeile pro Bon: Datum, Uhrzeit, Bon-Nr., Zahlungsart, Summe, Gegeben, Rückgeld, Artikel-Liste |
+| `items` (Default für `{id}`) | Eine Zeile pro Kassenposition (am detailliertesten): Produkt, Menge, Einzelpreis, Zeilensumme |
+| `products` | Aggregat je Produkt: Rang, Menge, Anteil%, Umsatz, Anteil%, Ø-Preis, Bon-Anzahl — beantwortet *„Was wurde verkauft?"* |
+
+Beispiel:
+```bash
+curl -OJ "localhost:8080/api/shifts/<id>/export.csv?type=products" \
+  -H "Authorization: Bearer $TOKEN"
+# → speichert "schicht-<short>-produkte.csv"
+```
 
 ## Smoke-Test
 

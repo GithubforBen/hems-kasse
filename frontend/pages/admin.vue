@@ -54,6 +54,16 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
           <button class="btn" @click="refreshHistory">Filtern</button>
         </div>
 
+        <div v-if="shift.all.length > 0" style="margin-bottom:12px">
+          <ExportButtons
+            path="/api/shifts/export.csv"
+            :types="['shifts', 'items', 'products', 'sales']"
+            :filters="{
+              klasse: filters.klasse || undefined,
+              q: filters.q || undefined,
+            }" />
+        </div>
+
         <ShiftHistoryList
           :shifts="shift.all"
           :show-operator="true"
