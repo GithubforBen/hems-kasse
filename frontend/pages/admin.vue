@@ -22,10 +22,12 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
       <button
         class="btn"
         :class="tab === 'catalog' ? '' : 'ghost'"
+        style="padding:7px 14px;font-size:13px"
         @click="tab = 'catalog'">Kategorien & Produkte</button>
       <button
         class="btn"
         :class="tab === 'shifts' ? '' : 'ghost'"
+        style="padding:7px 14px;font-size:13px"
         @click="tab = 'shifts'">Schichten · Alle</button>
     </div>
 
