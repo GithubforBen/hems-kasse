@@ -1,0 +1,198 @@
+/* ============================================================
+   REPORT — shift summary, cash count, top sellers
+   ============================================================ */
+.report{
+  max-width: 920px;
+  margin:0 auto;
+  padding:18px;
+  display:grid; gap:14px;
+  width:100%;
+}
+
+.stat-grid{
+  display:grid; grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.stat{
+  background: var(--paper);
+  border:1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding:14px 16px;
+}
+.stat .l{
+  font-size:10.5px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-3);
+  font-weight:700;
+  font-family: var(--font-mono);
+}
+.stat .v{
+  font-size:24px; font-weight:650;
+  margin-top:4px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em;
+  font-family: var(--font-num);
+}
+.stat .s{ font-size:12px; color:var(--ink-3); margin-top:2px }
+body[data-theme="farm"] .stat{ border-color: var(--line-2) }
+body[data-theme="farm"] .stat .v{
+  color: var(--accent); font-weight:600; letter-spacing:0;
+}
+
+.two-col{ display:grid; grid-template-columns: 1fr 1fr; gap:14px }
+
+.card-box{
+  background: var(--paper);
+  border:1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding:16px 18px;
+}
+body[data-theme="farm"] .card-box{ border-color: var(--line-2) }
+
+.card-box h3{
+  margin:0 0 12px;
+  font-size:13.5px; font-weight:650;
+  display:flex; align-items:center; justify-content:space-between;
+  font-family: var(--font-head);
+}
+.card-box h3 .meta{
+  font-size:12px; color:var(--ink-3);
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+  font-family: var(--font-mono);
+}
+body[data-theme="farm"] .card-box h3{
+  text-transform:uppercase; letter-spacing:.06em; font-size:12px;
+  color: var(--accent);
+}
+
+/* ---------- denominations ---------- */
+.denom-row{
+  display:grid; grid-template-columns: 80px 1fr 90px;
+  gap:10px; align-items:center;
+  padding:7px 0;
+  border-top:1px dashed var(--line);
+}
+.denom-row:first-of-type{ border-top:0 }
+body[data-theme="farm"] .denom-row{ border-top-color: var(--line-2) }
+
+.denom-row .d{
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  font-size:13px;
+  font-family: var(--font-mono);
+}
+.denom-row input{
+  background: var(--paper-2);
+  border:1px solid var(--line-2);
+  border-radius: var(--r-xs);
+  padding:7px 10px;
+  width:100%;
+  outline:none;
+  font-variant-numeric:tabular-nums;
+  text-align:right;
+  color: var(--ink);
+  font-family: var(--font-num);
+}
+.denom-row input:focus{ border-color: var(--accent); background: var(--paper) }
+.denom-row .sub{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink-2);
+  font-size:13px;
+  font-family: var(--font-num);
+}
+
+/* ---------- summary list ---------- */
+.summary-list .l{
+  display:flex; justify-content:space-between;
+  padding:9px 0;
+  border-top:1px solid var(--line);
+  font-size:13px;
+}
+.summary-list .l:first-child{ border-top:0 }
+.summary-list .l.tot{ font-weight:700; font-size:15px }
+.summary-list .v{
+  font-variant-numeric:tabular-nums; font-weight:600;
+  font-family: var(--font-num);
+}
+body[data-theme="farm"] .summary-list .l{ border-top-color: var(--line-2); font-family: var(--font-mono) }
+body[data-theme="farm"] .summary-list .l.tot .v{ color: var(--accent) }
+
+/* ---------- diff ---------- */
+.diff{
+  display:flex; justify-content:space-between; align-items:center;
+  background: var(--paper-2);
+  border:1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding:12px 14px;
+  margin-top:10px;
+}
+.diff .l{ font-weight:600; font-size:13px }
+.diff .v{ font-weight:700; font-variant-numeric:tabular-nums; font-size:19px; font-family: var(--font-num) }
+.diff.ok{ background: var(--ok-soft); border-color:#bcdcc7; color:var(--ok) }
+.diff.bad{ background: var(--bad-soft); border-color:#efc4bf; color: var(--bad) }
+.diff.zero{ background: var(--paper-2); color: var(--ink-2) }
+
+body[data-theme="farm"] .diff{ background:transparent; border-color:var(--line-2) }
+body[data-theme="farm"] .diff.ok{ background:transparent; border-color: var(--ok); color: var(--ok) }
+body[data-theme="farm"] .diff.bad{ background:transparent; border-color: var(--bad); color: var(--bad) }
+body[data-theme="farm"] .diff .l{ font-family: var(--font-mono); text-transform:uppercase; letter-spacing:.06em }
+
+/* ---------- top sellers ---------- */
+.top-list .t-row{
+  display:grid; grid-template-columns: 24px 1fr 60px 80px;
+  gap:10px; align-items:center;
+  padding:8px 0;
+  border-top:1px solid var(--line);
+  font-size:13px;
+}
+.top-list .t-row:first-child{ border-top:0 }
+body[data-theme="farm"] .top-list .t-row{ border-top-color: var(--line-2); font-family: var(--font-mono) }
+
+.top-list .rk{
+  color:var(--ink-3); font-weight:700;
+  font-variant-numeric:tabular-nums;
+  font-family: var(--font-mono);
+}
+.top-list .qy{
+  text-align:right; font-variant-numeric:tabular-nums;
+  color:var(--ink-2);
+  font-family: var(--font-num);
+}
+.top-list .sm{
+  text-align:right; font-variant-numeric:tabular-nums;
+  font-weight:600;
+  font-family: var(--font-num);
+}
+
+.bar-bg{
+  height:4px;
+  background:var(--paper-3);
+  border-radius:99px;
+  margin-top:5px;
+  overflow:hidden;
+}
+.bar{
+  height:100%;
+  background:var(--ink);
+  border-radius:99px;
+}
+body[data-theme="farm"] .bar-bg{ background:var(--paper-2); border-radius:1px }
+body[data-theme="farm"] .bar{
+  background: var(--accent);
+  border-radius:1px;
+  box-shadow: 0 0 8px -1px var(--accent);
+}
+
+.report-actions{
+  display:flex; gap:10px;
+  justify-content:flex-end;
+  margin-top:6px;
+}
+.report-empty{
+  padding:34px;
+  text-align:center;
+  color:var(--ink-3);
+  font-size:13.5px;
+}
+body[data-theme="farm"] .report-empty{ font-family:var(--font-mono) }

@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:kasse;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+kasse:
+  jwt:
+    secret: dGVzdC1zZWNyZXQtYXQtbGVhc3QtMzItYnl0ZXMtcGxlYXNlLXBhZA==
+    ttl-hours: 1
+  cors:
+    origins: http://localhost:3000
+  classes: BG12e:Passw0rd,BG12f:Görner
+  admins: alice:adminPW1
+  epc:
+    name: Test Schulkasse
+    iban: DE89370400440532013000
+    bic: ""
+    purpose: ""
+    remittance: Kuchenverkauf
