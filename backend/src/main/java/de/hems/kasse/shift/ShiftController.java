@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -102,7 +103,9 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String klasse,
             @RequestParam(required = false) String q) {
-        return shifts.searchClosed(from, to,
+        return shifts.searchClosed(
+                from != null ? from : Instant.EPOCH,
+                to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
                 q == null || q.isBlank() ? null : q)
                 .stream().map(ShiftDto::of).toList();
@@ -161,7 +164,9 @@ public class ShiftController {
             @RequestParam(required = false) String klasse,
             @RequestParam(required = false) String q) {
         ExportType t = parseType(type);
-        var list = shifts.searchClosed(from, to,
+        var list = shifts.searchClosed(
+                from != null ? from : Instant.EPOCH,
+                to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
                 q == null || q.isBlank() ? null : q);
         String body = exports.render(t, list);

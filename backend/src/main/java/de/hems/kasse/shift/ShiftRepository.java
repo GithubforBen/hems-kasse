@@ -18,10 +18,10 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
     @Query("""
         select s from Shift s
         where s.closedAt is not null
-          and (:from is null or s.closedAt >= :from)
-          and (:to   is null or s.closedAt <  :to)
-          and (:klasse is null or lower(s.klasse) = lower(:klasse))
-          and (:q is null or lower(s.userName) like lower(concat('%', :q, '%')))
+          and s.closedAt >= :from
+          and s.closedAt <  :to
+          and (:klasse is null or lower(s.klasse) = lower(cast(:klasse as string)))
+          and (:q is null or lower(s.userName) like lower(concat('%', cast(:q as string), '%')))
         order by s.closedAt desc
         """)
     List<Shift> searchClosed(@Param("from") Instant from,
