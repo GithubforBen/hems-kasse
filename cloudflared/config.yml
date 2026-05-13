@@ -1,0 +1,24 @@
+# Cloudflare Tunnel configuration
+# Docs: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+#
+# Setup:
+#   1. Create a tunnel:  cloudflared tunnel create schulkasse
+#   2. Copy the generated credentials JSON to cloudflared/creds.json
+#   3. Set tunnel: to the tunnel ID shown above
+#   4. Replace kasse.example.com with your actual domain
+#   5. Run: docker compose --profile tunnel up
+
+tunnel: <your-tunnel-id>
+credentials-file: /etc/cloudflared/creds.json
+
+ingress:
+  # Frontend (Nuxt SPA)
+  - hostname: kasse.example.com
+    service: http://frontend:3000
+
+  # Backend API — set NUXT_PUBLIC_API_BASE=https://api.kasse.example.com in .env
+  - hostname: api.kasse.example.com
+    service: http://backend:8080
+
+  # Required catch-all
+  - service: http_status:404
