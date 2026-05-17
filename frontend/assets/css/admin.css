@@ -5,6 +5,7 @@
   padding:14px;
   display:grid; grid-template-columns: 300px 1fr;
   gap:14px;
+  flex:1;
   height:100%;
   min-height:0;
   overflow:hidden;

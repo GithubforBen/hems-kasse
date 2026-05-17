@@ -113,6 +113,7 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 input,select,textarea{ font:inherit; color:inherit }
 .num{ font-variant-numeric: tabular-nums }
 .mono{ font-family: var(--font-mono) }
+.scroll-y{ overflow-y: auto; min-height: 0 }
 
 /* farm-mode dotted backdrop */
 body[data-theme="farm"]{
