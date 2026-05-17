@@ -86,8 +86,7 @@ function printPage() {
 </script>
 
 <template>
-  <div class="scroll-y" style="flex:1">
-    <div class="report">
+  <div class="report">
       <!-- KPI -->
       <div class="stat-grid">
         <div class="stat">
@@ -234,6 +233,5 @@ function printPage() {
           </div>
         </div>
       </div>
-    </div>
   </div>
 </template>
