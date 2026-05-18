@@ -1,0 +1,168 @@
+/* ============================================================
+   MOBILE — responsive overrides  ≤ 640px
+   ============================================================ */
+
+/* ---------- mobile tab bar (POS page only) ---------- */
+.mob-tabs{
+  display:none; /* hidden on desktop */
+}
+
+@media (max-width: 640px){
+
+  /* ---- App grid gets a row for the bottom tab bar ---- */
+  .app{
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* ---- TopBar ---- */
+  .clock{ display:none }
+  .topbar .brand-text .t2{ display:none }
+  /* user: keep avatar, hide name + class text */
+  .user-pill span:not(.avatar){ display:none }
+  .user-pill{ padding:3px }
+  .topbar .right{ gap:6px }
+  /* Shrink logout button */
+  .topbar .right .btn.ghost{ padding:5px 8px; font-size:12px }
+  /* Farm toggle: icon only on mobile */
+  .theme-toggle{ padding:5px 7px }
+  .theme-toggle span:not(.dot){ display:none }
+  .tabs{ margin-left:4px }
+  .tab{ padding:6px 10px; font-size:12px }
+
+  /* ---- POS layout ---- */
+  .pos{
+    grid-template-columns: 1fr;
+    padding:0; gap:0;
+    overflow:hidden;
+  }
+  /* Default: show product panel, hide cart */
+  .pos .panel.cart{ display:none }
+  /* mob-cart mode: show cart, hide product grid */
+  .pos.mob-cart .panel.cart{ display:flex }
+  .pos.mob-cart .panel:not(.cart){ display:none }
+
+  /* ---- Mobile tab bar ---- */
+  .mob-tabs{
+    display:flex;
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body[data-theme="farm"] .mob-tabs{
+    background: var(--paper-2);
+    border-top-color: var(--line-2);
+  }
+  .mob-tab{
+    flex:1;
+    padding:11px 8px 9px;
+    font-size:12.5px; font-weight:550;
+    color:var(--ink-3);
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    position:relative;
+  }
+  .mob-tab.active{ color:var(--ink) }
+  .mob-tab.active::after{
+    content:'';
+    position:absolute; top:0; left:25%; right:25%;
+    height:2px;
+    background:var(--ink);
+    border-radius:0 0 2px 2px;
+  }
+  body[data-theme="farm"] .mob-tab.active{ color:var(--accent) }
+  body[data-theme="farm"] .mob-tab.active::after{ background:var(--accent) }
+  .mob-tab-ico{ font-size:18px; line-height:1 }
+  .mob-tab-lbl{ font-size:10.5px; letter-spacing:.02em }
+  body[data-theme="farm"] .mob-tab-lbl{
+    font-family:var(--font-mono);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-size:10px;
+  }
+  .mob-badge{
+    position:absolute; top:6px;
+    /* offset right of icon center */
+    left:calc(50% + 6px);
+    background:var(--bad);
+    color:#fff;
+    font-size:9.5px; font-weight:700;
+    min-width:15px; height:15px;
+    border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 3px;
+    border:1.5px solid var(--paper);
+  }
+  body[data-theme="farm"] .mob-badge{ background:var(--accent); color:#061a10; border-color:var(--paper-2) }
+
+  /* ---- Product grid: smaller tiles ---- */
+  .grid{
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    padding:10px; gap:8px;
+  }
+  .product{ min-height:72px; padding:10px }
+  .product .name{ font-size:12.5px }
+  .product .price{ font-size:11.5px; margin-top:6px }
+
+  /* ---- Touch: bigger qty buttons ---- */
+  .qty button{ width:36px; height:36px; font-size:16px }
+
+  /* ---- Pay modal: slides up from bottom ---- */
+  .modal-bg{
+    padding:0;
+    align-items:flex-end;
+    background:rgba(10,8,4,.5);
+  }
+  .modal, .modal.wide{
+    width:100%;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom:0;
+    max-height:92dvh;
+    overflow-y:auto;
+    animation: sheet-up .25s ease;
+  }
+  body[data-theme="farm"] .modal{
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+  }
+  @keyframes sheet-up{
+    from{ transform:translateY(30px); opacity:0 }
+    to{ transform:none; opacity:1 }
+  }
+
+  /* cash: 5 cols → 3, coins: 6 → 4 */
+  .notes-grid{ grid-template-columns: repeat(3, 1fr) }
+  .coins-grid{ grid-template-columns: repeat(4, 1fr) }
+  .note{ height:46px; font-size:13px }
+  .modal-b{ padding:14px 16px 18px }
+  .modal-h{ padding:16px 16px 4px }
+  .modal-f{ padding:12px 16px }
+
+  /* ---- Report / Abschluss / Schicht-Detail ---- */
+  .stat-grid{ grid-template-columns: repeat(2, 1fr) }
+  .two-col{ grid-template-columns:1fr }
+  .report{ padding:10px }
+  .stat .v{ font-size:20px }
+
+  /* ---- Admin ---- */
+  .admin{
+    grid-template-columns:1fr;
+    grid-template-rows: auto 1fr;
+    overflow:auto;
+  }
+  .admin .side{
+    max-height:220px;
+    border-radius: var(--r-lg);
+    /* collapse if few categories */
+  }
+  /* product row: hide drag handle, compress layout */
+  .prod-row{
+    grid-template-columns: 1fr 90px 40px;
+  }
+  .prod-row .drag{ display:none }
+  .prod-row .swatch-pick{ display:none }
+}
+
+/* ---------- slightly wider phones / small tablets ---------- */
+@media (max-width: 768px) and (min-width: 641px){
+  .pos{ grid-template-columns: 300px 1fr }
+  .stat-grid{ grid-template-columns: repeat(2, 1fr) }
+  .two-col{ grid-template-columns: 1fr }
+}

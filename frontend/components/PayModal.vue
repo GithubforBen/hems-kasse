@@ -19,6 +19,11 @@ const givenCents = ref(0)
 const finished = ref<SaleDto | null>(null)
 const cardError = ref<string | null>(null)
 const cardWaiting = ref(false)
+const txRef = ref<string>('')
+
+function generateTxRef(): string {
+  return crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
+}
 
 const totalCents = computed(() => props.items.reduce((t, x) => t + x.priceCents * x.qty, 0))
 const changeCents = computed(() => givenCents.value - totalCents.value)
@@ -32,6 +37,7 @@ watch(() => props.open, (o) => {
     finished.value = null
     cardError.value = null
     cardWaiting.value = false
+    txRef.value = ''
   }
 })
 
@@ -78,6 +84,7 @@ async function finishCard() {
       method: 'KARTE',
       givenCents: totalCents.value,
       items: props.items,
+      transactionRef: txRef.value || undefined,
     })
     finished.value = sale
     stage.value = 'done'
@@ -101,9 +108,10 @@ async function loadQr(amount: number) {
   const prevUrl = qrUrl.value
   qrUrl.value = null
   if (prevUrl) URL.revokeObjectURL(prevUrl)
+  if (!txRef.value) txRef.value = generateTxRef()
   try {
     const blob = await api<Blob>('/api/payments/epc-qr.png', {
-      query: { amountCents: amount, ref: new Date().toISOString().slice(0, 16) },
+      query: { amountCents: amount, ref: txRef.value },
       responseType: 'blob',
       signal: abort.signal,
     })
@@ -247,6 +255,9 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
             <div class="status" style="margin-top:10px">
               Mit der Banking-App scannen, um die SEPA-Überweisung anzustoßen.
             </div>
+            <div v-if="txRef" class="tx-ref">
+              Transaktions-ID: <strong>#{{ txRef }}</strong>
+            </div>
           </div>
 
           <div v-if="cardError" style="margin-top:10px;color:var(--bad);font-size:13px">{{ cardError }}</div>
@@ -281,6 +292,7 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
             <div class="sep"></div>
             <div class="r grand"><span>GESAMT</span><span>{{ formatEUR(finished.totalCents) }}</span></div>
             <div class="r"><span>Zahlung</span><span>{{ finished.method === 'BAR' ? 'Bar' : 'Karte' }}</span></div>
+            <div class="r tx"><span>Transaktions-ID</span><span>#{{ finished.transactionRef }}</span></div>
             <template v-if="finished.method === 'BAR' && finished.givenCents > 0">
               <div class="r"><span>Gegeben</span><span>{{ formatEUR(finished.givenCents) }}</span></div>
               <div class="r"><span>Rückgeld</span><span>{{ formatEUR(finished.changeCents) }}</span></div>

@@ -41,6 +41,9 @@ public class Sale {
     @Column(name = "by_name", nullable = false, length = 120)
     private String byName;
 
+    @Column(name = "transaction_ref", nullable = false, length = 12)
+    private String transactionRef;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "sale_id", nullable = false)
     @Builder.Default
