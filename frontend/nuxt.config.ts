@@ -11,7 +11,7 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'de' },
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       ],
     },
   },
@@ -24,6 +24,7 @@ export default defineNuxtConfig({
     '~/assets/css/pay.css',
     '~/assets/css/report.css',
     '~/assets/css/admin.css',
+    '~/assets/css/mobile.css',
   ],
 
   runtimeConfig: {
