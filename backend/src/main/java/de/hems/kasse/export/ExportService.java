@@ -64,7 +64,7 @@ public class ExportService {
         var w = new CsvWriter().row(
                 "Schicht-ID", "Verkäufer:in", "Klasse",
                 "Datum", "Uhrzeit",
-                "Bon-Nr.", "Zahlungsart",
+                "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Summe (€)", "Gegeben (€)", "Rückgeld (€)",
                 "Artikel-Anzahl", "Artikel");
         for (Shift s : shifts) {
@@ -84,6 +84,7 @@ public class ExportService {
                         date(x.getTs()),
                         time(x.getTs()),
                         bonNr,
+                        x.getTransactionRef(),
                         x.getMethod().name(),
                         euro(x.getTotalCents()),
                         euro(x.getGivenCents()),
@@ -100,7 +101,7 @@ public class ExportService {
         var w = new CsvWriter().row(
                 "Schicht-ID", "Verkäufer:in", "Klasse",
                 "Datum", "Uhrzeit",
-                "Bon-Nr.", "Zahlungsart",
+                "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Produkt", "Menge", "Einzelpreis (€)", "Zeilensumme (€)");
         for (Shift s : shifts) {
             List<Sale> shiftSales = sales.findAllByShiftIdOrderByTsDesc(s.getId());
@@ -115,6 +116,7 @@ public class ExportService {
                             date(x.getTs()),
                             time(x.getTs()),
                             bonNr,
+                            x.getTransactionRef(),
                             x.getMethod().name(),
                             it.getName(),
                             it.getQty(),

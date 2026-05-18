@@ -19,7 +19,7 @@ export const useSalesStore = defineStore('sales', {
       this.sales = await api<SaleDto[]>('/api/sales')
     },
 
-    async record(body: { method: 'BAR' | 'KARTE'; givenCents: number; items: CartItem[] }) {
+    async record(body: { method: 'BAR' | 'KARTE'; givenCents: number; items: CartItem[]; transactionRef?: string }) {
       const api = useApi()
       const sale = await api<SaleDto>('/api/sales', {
         method: 'POST',
@@ -27,6 +27,7 @@ export const useSalesStore = defineStore('sales', {
           method: body.method,
           givenCents: body.givenCents,
           items: body.items.map(it => ({ productId: it.productId, qty: it.qty })),
+          transactionRef: body.transactionRef,
         },
       })
       this.sales.unshift(sale)

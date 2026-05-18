@@ -39,6 +39,7 @@ export interface SaleDto {
   changeCents: number
   byName: string
   items: SaleItemDto[]
+  transactionRef: string
 }
 
 export interface ShiftDto {

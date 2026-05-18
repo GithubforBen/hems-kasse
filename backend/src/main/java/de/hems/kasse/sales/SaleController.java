@@ -39,19 +39,20 @@ public class SaleController {
     public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty) {}
     public record NewSale(@NotNull String method,
                           @Min(0) int givenCents,
-                          @NotEmpty List<@Valid NewSaleItem> items) {}
+                          @NotEmpty List<@Valid NewSaleItem> items,
+                          String transactionRef) {}
 
     public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color) {}
     public record SaleDto(UUID id, Instant ts, String method,
                           int totalCents, int givenCents, int changeCents,
-                          String byName, List<SaleItemDto> items) {
+                          String byName, List<SaleItemDto> items, String transactionRef) {
         static SaleDto of(Sale s) {
             var items = s.getItems().stream()
                     .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor()))
                     .toList();
             return new SaleDto(s.getId(), s.getTs(), s.getMethod().name(),
                     s.getTotalCents(), s.getGivenCents(), s.getChangeCents(),
-                    s.getByName(), items);
+                    s.getByName(), items, s.getTransactionRef());
         }
     }
 
@@ -99,8 +100,11 @@ public class SaleController {
             given = total;
         }
 
+        UUID saleId = UUID.randomUUID();
+        String txRef = resolveTransactionRef(body.transactionRef(), saleId);
+
         Sale sale = Sale.builder()
-                .id(UUID.randomUUID())
+                .id(saleId)
                 .shiftId(shift.getId())
                 .ts(Instant.now())
                 .method(method)
@@ -108,8 +112,18 @@ public class SaleController {
                 .givenCents(given)
                 .changeCents(change)
                 .byName(p.name())
+                .transactionRef(txRef)
                 .items(items)
                 .build();
         return SaleDto.of(sales.save(sale));
+    }
+
+    /** Uses the client-supplied ref (max 12 alphanumeric chars) or derives one from the sale UUID. */
+    private static String resolveTransactionRef(String provided, UUID saleId) {
+        if (provided != null && !provided.isBlank()) {
+            String clean = provided.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+            if (!clean.isEmpty()) return clean.substring(0, Math.min(clean.length(), 12));
+        }
+        return saleId.toString().replace("-", "").substring(0, 8).toUpperCase(Locale.ROOT);
     }
 }
