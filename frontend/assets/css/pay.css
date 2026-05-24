@@ -386,6 +386,88 @@ body[data-theme="farm"] .receipt{ color:var(--ink) }
 body[data-theme="farm"] .receipt .grand{ color: var(--accent) }
 .tx-ref{ margin-top:10px; font-size:12px; opacity:.85; font-family:var(--font-mono); letter-spacing:.04em }
 
+/* ---------- paypal button (inside card stage) ---------- */
+.paypal-open-btn{
+  margin-top:14px;
+  width:100%;
+  background:#fff;
+  border:1.5px solid #002991;
+  border-radius: var(--r-lg);
+  padding:11px 16px;
+  font-size:14px; font-weight:600;
+  color:#003087;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition: background .12s;
+}
+.paypal-open-btn:hover{ background:#f0f4ff }
+.paypal-pp{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:20px;
+  border-radius:4px;
+  background:#003087;
+  color:#fff;
+  font-size:10px; font-weight:800; letter-spacing:-.5px;
+  font-family: var(--font-sans);
+  flex-shrink:0;
+}
+body[data-theme="farm"] .paypal-open-btn{
+  background:transparent; border-color:#009cde;
+  color:#009cde; border-radius: var(--r-sm);
+}
+body[data-theme="farm"] .paypal-open-btn:hover{ background: rgba(0,156,222,.08) }
+body[data-theme="farm"] .paypal-pp{ background:#009cde }
+
+/* ---------- paypal logo text in modal header ---------- */
+.paypal-logo-text{ font-size:17px; font-weight:800; letter-spacing:-.01em }
+.pp-dark{ color:#003087 }
+.pp-light{ color:#009cde }
+body[data-theme="farm"] .pp-dark{ color:#8cc7ff }
+body[data-theme="farm"] .pp-light{ color:#009cde }
+
+/* ---------- paypal stage card ---------- */
+.paypal-card{
+  background: linear-gradient(135deg,#003087 0%,#009cde 100%);
+  color:#fff;
+  border-radius: calc(var(--r-lg) + 4px);
+  padding:24px;
+  margin-top:8px;
+  text-align:center;
+}
+.paypal-card .lab{
+  font-size:11px; opacity:.85;
+  letter-spacing:.08em; text-transform:uppercase;
+  font-weight:600; font-family: var(--font-mono);
+}
+.paypal-card .v{
+  font-size:36px; font-weight:700;
+  margin-top:6px;
+  font-variant-numeric:tabular-nums;
+  font-family: var(--font-num);
+  letter-spacing:-.01em;
+}
+.paypal-card .status{ font-size:13px; opacity:.9 }
+.paypal-qr-wrap{
+  background:#fff;
+  padding:12px;
+  border-radius:12px;
+  min-width:296px; min-height:296px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 20px -6px rgba(0,0,0,.4);
+}
+.paypal-link{
+  margin-top:12px;
+  font-size:12px; opacity:.8;
+  font-family: var(--font-mono);
+  word-break:break-all;
+}
+body[data-theme="farm"] .paypal-card{
+  background:transparent;
+  border:1px solid #009cde;
+  border-radius: var(--r-sm);
+  color:#8cc7ff;
+}
+body[data-theme="farm"] .paypal-card .v{ color:#cfe4ff; letter-spacing:0 }
+
 .success-ic{
   width:62px; height:62px;
   border-radius:50%;
