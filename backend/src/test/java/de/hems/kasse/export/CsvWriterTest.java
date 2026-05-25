@@ -28,6 +28,30 @@ class CsvWriterTest {
     }
 
     @Test
+    void prefixesFormulaInjectionAttempts() {
+        String out = new CsvWriter()
+                .row("=cmd|'/c calc'!A1", "+1+1", "-2-2", "@SUM(A1)", "\tTAB", "harmless")
+                .toCsv();
+        // Each dangerous leading char gets a single-quote prefix so spreadsheets
+        // treat the cell as text instead of a formula.
+        assertTrue(out.contains("'=cmd|'/c calc'!A1"), out);
+        assertTrue(out.contains("'+1+1"), out);
+        assertTrue(out.contains("'-2-2"), out);
+        assertTrue(out.contains("'@SUM(A1)"), out);
+        assertTrue(out.contains("'\tTAB"), out);
+        assertTrue(out.contains(";harmless"), out);
+    }
+
+    @Test
+    void signedNumbersAreNotPrefixed() {
+        // Diff column relies on +3,00 / -1,25 staying numeric.
+        String out = new CsvWriter()
+                .row(CsvWriter.signedEuro(300), CsvWriter.signedEuro(-125), CsvWriter.euro(1250))
+                .toCsv();
+        assertTrue(out.contains("+3,00;-1,25;12,50"), out);
+    }
+
+    @Test
     void euroAndSignedEuroFormatGerman() {
         assertEquals("12,50", CsvWriter.euro(1250));
         assertEquals("0,00", CsvWriter.euro(0));

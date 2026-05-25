@@ -107,7 +107,7 @@ public class ShiftController {
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
-                q == null || q.isBlank() ? null : q)
+                escapeLike(q))
                 .stream().map(ShiftDto::of).toList();
     }
 
@@ -168,7 +168,7 @@ public class ShiftController {
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
-                q == null || q.isBlank() ? null : q);
+                escapeLike(q));
         String body = exports.render(t, list);
         return csv(body, "schichten-" + t.slug() + "-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
     }
@@ -183,6 +183,18 @@ public class ShiftController {
 
     private static String shortId(UUID id) {
         return id.toString().substring(0, 8);
+    }
+
+    /**
+     * Escape LIKE metacharacters so a user-typed query can't act as a wildcard
+     * (matches the {@code escape '!'} clause in {@link ShiftRepository#searchClosed}).
+     * Returns null for null/blank input so the query branch short-circuits.
+     */
+    private static String escapeLike(String q) {
+        if (q == null || q.isBlank()) return null;
+        return q.replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
     }
 
     private static ResponseEntity<byte[]> csv(String body, String filename) {

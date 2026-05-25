@@ -25,6 +25,11 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(c -> {})
+                .headers(h -> h
+                        .frameOptions(f -> f.deny())
+                        .contentTypeOptions(o -> {})
+                        .referrerPolicy(r -> r.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/api/auth/login").permitAll()
