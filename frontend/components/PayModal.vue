@@ -2,6 +2,7 @@
 import { formatEUR } from '~/utils/format'
 import { NOTES, COINS } from '~/utils/denoms'
 import type { CartItem, SaleDto } from '~/types/api'
+import QRCode from 'qrcode'
 
 const props = defineProps<{
   open: boolean
@@ -13,13 +14,14 @@ const emit = defineEmits<{
   paid: [sale: SaleDto]
 }>()
 
-type Stage = 'choose' | 'cash' | 'card' | 'done'
+type Stage = 'choose' | 'cash' | 'card' | 'paypal' | 'done'
 const stage = ref<Stage>('choose')
 const givenCents = ref(0)
 const finished = ref<SaleDto | null>(null)
 const cardError = ref<string | null>(null)
 const cardWaiting = ref(false)
 const txRef = ref<string>('')
+const paypalQrDataUrl = ref<string | null>(null)
 
 function generateTxRef(): string {
   return crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
@@ -38,6 +40,7 @@ watch(() => props.open, (o) => {
     cardError.value = null
     cardWaiting.value = false
     txRef.value = ''
+    paypalQrDataUrl.value = null
   }
 })
 
@@ -96,6 +99,26 @@ async function finishCard() {
   }
 }
 
+const paypalUrl = computed(() => {
+  const euros = (totalCents.value / 100).toFixed(2)
+  return `https://paypal.me/hems2027/${euros}`
+})
+
+async function openPaypal() {
+  paypalQrDataUrl.value = null
+  stage.value = 'paypal'
+  try {
+    paypalQrDataUrl.value = await QRCode.toDataURL(paypalUrl.value, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+  } catch {
+    cardError.value = 'PayPal-QR konnte nicht erzeugt werden.'
+  }
+}
+
 // QR endpoint requires auth — fetch as blob to avoid leaking JWT in the img src URL.
 const api = useApi()
 const qrUrl = ref<string | null>(null)
@@ -131,7 +154,7 @@ onBeforeUnmount(() => {
 })
 
 function onBackdropClick(e: MouseEvent) {
-  if (e.target === e.currentTarget && stage.value !== 'card') emit('close')
+  if (e.target === e.currentTarget && stage.value !== 'card' && stage.value !== 'paypal') emit('close')
 }
 
 const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace('.', ','))
@@ -260,10 +283,48 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
             </div>
           </div>
 
+          <button class="paypal-open-btn" @click="openPaypal">
+            <span class="paypal-pp">PP</span>
+            mit PayPal zahlen
+          </button>
+
           <div v-if="cardError" style="margin-top:10px;color:var(--bad);font-size:13px">{{ cardError }}</div>
         </div>
         <div class="modal-f">
           <button class="btn ghost" @click="setStage('choose')" :disabled="cardWaiting">Abbrechen</button>
+          <button class="btn ok" @click="finishCard" :disabled="cardWaiting">
+            {{ cardWaiting ? 'Buchen…' : 'Zahlung erhalten' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- paypal stage -->
+      <template v-else-if="stage === 'paypal'">
+        <div class="modal-h">
+          <h3>
+            <span class="paypal-logo-text"><span class="pp-dark">Pay</span><span class="pp-light">Pal</span></span>
+          </h3>
+          <p>QR-Code mit der PayPal-App scannen.</p>
+        </div>
+        <div class="modal-b">
+          <div class="paypal-card">
+            <div class="lab">Zu zahlen</div>
+            <div class="v">{{ formatEUR(totalCents) }}</div>
+            <div style="margin-top:18px;display:flex;justify-content:center">
+              <div class="paypal-qr-wrap">
+                <img v-if="paypalQrDataUrl" :src="paypalQrDataUrl" alt="PayPal QR" width="280" height="280" />
+                <span v-else class="status"><span class="pulse"></span>QR wird erzeugt…</span>
+              </div>
+            </div>
+            <div class="paypal-link">{{ paypalUrl }}</div>
+            <div class="status" style="margin-top:10px;font-size:12px;opacity:.75">
+              Kein Unternehmenskonto — privat via PayPal.me
+            </div>
+          </div>
+          <div v-if="cardError" style="margin-top:10px;color:var(--bad);font-size:13px">{{ cardError }}</div>
+        </div>
+        <div class="modal-f">
+          <button class="btn ghost" @click="setStage('card')" :disabled="cardWaiting">← Zurück</button>
           <button class="btn ok" @click="finishCard" :disabled="cardWaiting">
             {{ cardWaiting ? 'Buchen…' : 'Zahlung erhalten' }}
           </button>
