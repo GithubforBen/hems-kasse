@@ -21,7 +21,7 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
           and s.closedAt >= :from
           and s.closedAt <  :to
           and (:klasse is null or lower(s.klasse) = lower(cast(:klasse as string)))
-          and (:q is null or lower(s.userName) like lower(concat('%', cast(:q as string), '%')))
+          and (:q is null or lower(s.userName) like lower(concat('%', cast(:q as string), '%')) escape '!')
         order by s.closedAt desc
         """)
     List<Shift> searchClosed(@Param("from") Instant from,

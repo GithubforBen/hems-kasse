@@ -102,9 +102,32 @@ public class CsvWriter {
 
     // ---------- internals ----------
 
+    private static final java.util.regex.Pattern NUMERIC =
+            java.util.regex.Pattern.compile("[+-]?\\d+([.,]\\d+)?");
+
+    static boolean looksLikeFormula(String s) {
+        if (s.isEmpty()) return false;
+        char first = s.charAt(0);
+        if (first != '=' && first != '+' && first != '-' && first != '@'
+                && first != '\t' && first != '\r') {
+            return false;
+        }
+        // Exempt plain signed numbers (e.g. "+3,00", "-1,25") — useful for the
+        // Diff column and Excel happily parses them as numeric.
+        return !NUMERIC.matcher(s).matches();
+    }
+
     private static String escape(Object cell) {
         if (cell == null) return "";
         String s = cell.toString();
+        // Prevent CSV formula injection (CWE-1236): a leading =, +, -, @, tab or CR
+        // would be parsed as a formula by Excel / LibreOffice / Sheets and could
+        // execute arbitrary commands (e.g. =cmd|'/c calc'!A1). Signed numbers
+        // produced by signedEuro (e.g. "+3,00", "-1,25") are exempt so the Diff
+        // column still parses as a number.
+        if (looksLikeFormula(s)) {
+            s = "'" + s;
+        }
         boolean needsQuotes = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
