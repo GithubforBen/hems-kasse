@@ -33,7 +33,7 @@ export interface SaleItemDto {
 export interface SaleDto {
   id: string
   ts: string
-  method: 'BAR' | 'KARTE'
+  method: 'BAR' | 'KARTE' | 'PAYPAL'
   totalCents: number
   givenCents: number
   changeCents: number
@@ -55,6 +55,7 @@ export interface ShiftDto {
   diffCents: number | null
   cashSalesCents: number | null
   cardSalesCents: number | null
+  paypalSalesCents: number | null
   totalSalesCents: number | null
   salesCount: number | null
   itemsSold: number | null
@@ -66,11 +67,12 @@ export interface ShiftDetailDto {
   sales: Array<{
     id: string
     ts: string
-    method: 'BAR' | 'KARTE'
+    method: 'BAR' | 'KARTE' | 'PAYPAL'
     totalCents: number
     givenCents: number
     changeCents: number
     byName: string
+    transactionRef: string
     items: Array<{ name: string; priceCents: number; qty: number; color: string }>
   }>
 }

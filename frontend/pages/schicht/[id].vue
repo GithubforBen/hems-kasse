@@ -73,6 +73,11 @@ const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
             <div class="s">SEPA via QR</div>
           </div>
           <div class="stat">
+            <div class="l">PayPal</div>
+            <div class="v">{{ formatEUR(data.shift.paypalSalesCents ?? 0) }}</div>
+            <div class="s">PayPal.me</div>
+          </div>
+          <div class="stat">
             <div class="l">Differenz</div>
             <div class="v" :class="{ ok: (data.shift.diffCents ?? 0) > 0, bad: (data.shift.diffCents ?? 0) < 0 }">
               {{ (data.shift.diffCents ?? 0) > 0 ? '+' : '' }}{{ formatEUR(data.shift.diffCents ?? 0) }}
@@ -117,9 +122,12 @@ const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
             <div v-if="data.sales.length === 0" class="report-empty">Keine Verkäufe.</div>
             <div v-else class="top-list">
               <div v-for="s in data.sales" :key="s.id" class="t-row">
-                <span class="rk">{{ s.method === 'BAR' ? '€' : '⌐' }}</span>
+                <span class="rk">{{ s.method === 'BAR' ? '€' : s.method === 'PAYPAL' ? 'PP' : '⌐' }}</span>
                 <div>
-                  <div style="font-weight:550">{{ formatEUR(s.totalCents) }} · {{ s.method === 'BAR' ? 'Bar' : 'Karte' }}</div>
+                  <div style="font-weight:550">
+                    {{ formatEUR(s.totalCents) }} · {{ s.method === 'BAR' ? 'Bar' : s.method === 'PAYPAL' ? 'PayPal' : 'Karte' }}
+                    <span v-if="s.method !== 'BAR'" style="font-size:11px;font-weight:400;opacity:.65;margin-left:4px">#{{ s.transactionRef }}</span>
+                  </div>
                   <div style="color:var(--ink-3);font-size:12px">
                     {{ new Date(s.ts).toLocaleString('de-DE') }} · {{ s.items.map(i => `${i.qty}× ${i.name}`).join(', ') }}
                   </div>

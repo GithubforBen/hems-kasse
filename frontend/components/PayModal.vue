@@ -99,6 +99,25 @@ async function finishCard() {
   }
 }
 
+async function finishPaypal() {
+  cardWaiting.value = true
+  cardError.value = null
+  try {
+    const sale = await sales.record({
+      method: 'PAYPAL',
+      givenCents: totalCents.value,
+      items: props.items,
+    })
+    finished.value = sale
+    stage.value = 'done'
+    emit('paid', sale)
+  } catch (e: any) {
+    cardError.value = e?.data?.message ?? 'Buchung fehlgeschlagen.'
+  } finally {
+    cardWaiting.value = false
+  }
+}
+
 const paypalUrl = computed(() => {
   const euros = (totalCents.value / 100).toFixed(2)
   return `https://paypal.me/hems2027/${euros}`
@@ -325,7 +344,7 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
         </div>
         <div class="modal-f">
           <button class="btn ghost" @click="setStage('card')" :disabled="cardWaiting">← Zurück</button>
-          <button class="btn ok" @click="finishCard" :disabled="cardWaiting">
+          <button class="btn ok" @click="finishPaypal" :disabled="cardWaiting">
             {{ cardWaiting ? 'Buchen…' : 'Zahlung erhalten' }}
           </button>
         </div>
@@ -337,7 +356,7 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
           <div class="success-ic">✓</div>
           <h3 style="text-align:center">Bezahlt</h3>
           <p style="text-align:center">
-            {{ finished.method === 'BAR' ? 'Bar' : 'Karte' }} · {{ formatEUR(finished.totalCents) }} · Vielen Dank!
+            {{ finished.method === 'BAR' ? 'Bar' : finished.method === 'PAYPAL' ? 'PayPal' : 'Karte' }} · {{ formatEUR(finished.totalCents) }} · Vielen Dank!
           </p>
         </div>
         <div class="modal-b">
@@ -352,7 +371,7 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
             </div>
             <div class="sep"></div>
             <div class="r grand"><span>GESAMT</span><span>{{ formatEUR(finished.totalCents) }}</span></div>
-            <div class="r"><span>Zahlung</span><span>{{ finished.method === 'BAR' ? 'Bar' : 'Karte' }}</span></div>
+            <div class="r"><span>Zahlung</span><span>{{ finished.method === 'BAR' ? 'Bar' : finished.method === 'PAYPAL' ? 'PayPal' : 'Karte' }}</span></div>
             <div class="r tx"><span>Transaktions-ID</span><span>#{{ finished.transactionRef }}</span></div>
             <template v-if="finished.method === 'BAR' && finished.givenCents > 0">
               <div class="r"><span>Gegeben</span><span>{{ formatEUR(finished.givenCents) }}</span></div>
