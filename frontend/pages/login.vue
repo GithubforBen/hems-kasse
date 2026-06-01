@@ -64,6 +64,7 @@ async function submit() {
         <input
           class="input"
           autofocus
+          autocomplete="name"
           v-model="name"
           @keydown.enter="submit"
           placeholder="z. B. Lena Müller" />
@@ -83,6 +84,7 @@ async function submit() {
         <input
           class="input"
           type="password"
+          autocomplete="current-password"
           v-model="password"
           @keydown.enter="submit"
           :placeholder="role === 'VERKAUF' ? 'Klassenpasswort' : 'Admin-Passwort'" />

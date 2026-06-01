@@ -1,6 +1,9 @@
 /* ============================================================
-   MOBILE — responsive overrides  ≤ 640px
+   MOBILE — responsive overrides
    ============================================================ */
+
+/* Desktop: hide icon alternatives, show full text */
+.tab .tab-icon { display: none; }
 
 /* ---------- mobile tab bar (POS page only) ---------- */
 .mob-tabs{
@@ -9,25 +12,28 @@
 
 @media (max-width: 640px){
 
-  /* ---- App grid gets a row for the bottom tab bar ---- */
+  /* ---- App grid: room for bottom tab bar ---- */
   .app{
     grid-template-rows: auto 1fr auto;
   }
 
   /* ---- TopBar ---- */
   .clock{ display:none }
-  .topbar .brand-text .t2{ display:none }
-  /* user: keep avatar, hide name + class text */
+  .topbar .brand-text{ display:none }
+  /* user: keep avatar only */
   .user-pill span:not(.avatar){ display:none }
   .user-pill{ padding:3px }
   .topbar .right{ gap:6px }
-  /* Shrink logout button */
   .topbar .right .btn.ghost{ padding:5px 8px; font-size:12px }
-  /* Farm toggle: icon only on mobile */
+  /* Farm toggle: dot only */
   .theme-toggle{ padding:5px 7px }
   .theme-toggle span:not(.dot){ display:none }
-  .tabs{ margin-left:4px }
-  .tab{ padding:6px 10px; font-size:12px }
+
+  /* Navigation tabs: icon-only to save space */
+  .tabs{ margin-left:6px }
+  .tab .tab-full{ display:none }
+  .tab .tab-icon{ display:inline; font-size:17px; line-height:1 }
+  .tab{ padding:6px 10px }
 
   /* ---- POS layout ---- */
   .pos{
@@ -41,12 +47,13 @@
   .pos.mob-cart .panel.cart{ display:flex }
   .pos.mob-cart .panel:not(.cart){ display:none }
 
-  /* ---- Mobile tab bar ---- */
+  /* ---- Mobile tab bar (Produkte / Warenkorb) ---- */
   .mob-tabs{
     display:flex;
     background:var(--paper);
     border-top:1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    flex-shrink:0;
   }
   body[data-theme="farm"] .mob-tabs{
     background: var(--paper-2);
@@ -59,6 +66,7 @@
     color:var(--ink-3);
     display:flex; flex-direction:column; align-items:center; gap:3px;
     position:relative;
+    min-height:52px;
   }
   .mob-tab.active{ color:var(--ink) }
   .mob-tab.active::after{
@@ -70,7 +78,7 @@
   }
   body[data-theme="farm"] .mob-tab.active{ color:var(--accent) }
   body[data-theme="farm"] .mob-tab.active::after{ background:var(--accent) }
-  .mob-tab-ico{ font-size:18px; line-height:1 }
+  .mob-tab-ico{ font-size:20px; line-height:1 }
   .mob-tab-lbl{ font-size:10.5px; letter-spacing:.02em }
   body[data-theme="farm"] .mob-tab-lbl{
     font-family:var(--font-mono);
@@ -80,12 +88,11 @@
   }
   .mob-badge{
     position:absolute; top:6px;
-    /* offset right of icon center */
-    left:calc(50% + 6px);
+    left:calc(50% + 8px);
     background:var(--bad);
     color:#fff;
     font-size:9.5px; font-weight:700;
-    min-width:15px; height:15px;
+    min-width:16px; height:16px;
     border-radius:999px;
     display:flex; align-items:center; justify-content:center;
     padding:0 3px;
@@ -93,17 +100,21 @@
   }
   body[data-theme="farm"] .mob-badge{ background:var(--accent); color:#061a10; border-color:var(--paper-2) }
 
-  /* ---- Product grid: smaller tiles ---- */
+  /* ---- Product grid: comfortable touch targets ---- */
   .grid{
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
     padding:10px; gap:8px;
   }
-  .product{ min-height:72px; padding:10px }
-  .product .name{ font-size:12.5px }
-  .product .price{ font-size:11.5px; margin-top:6px }
+  .product{ min-height:82px; padding:11px }
+  .product .name{ font-size:13px }
+  .product .price{ font-size:12px; margin-top:7px }
 
-  /* ---- Touch: bigger qty buttons ---- */
-  .qty button{ width:36px; height:36px; font-size:16px }
+  /* ---- Cart: bigger qty buttons for touch ---- */
+  .qty button{ width:38px; height:38px; font-size:17px }
+  .qty .n{ font-size:15px; min-width:22px }
+
+  /* ---- Checkout button: taller for easy tap ---- */
+  .sum-btn{ padding:16px 14px; font-size:15px }
 
   /* ---- Pay modal: slides up from bottom ---- */
   .modal-bg{
@@ -127,19 +138,35 @@
     to{ transform:none; opacity:1 }
   }
 
-  /* cash: 5 cols → 3, coins: 6 → 4 */
+  /* Cash denomination grids */
   .notes-grid{ grid-template-columns: repeat(3, 1fr) }
   .coins-grid{ grid-template-columns: repeat(4, 1fr) }
-  .note{ height:46px; font-size:13px }
+  .note{ height:50px; font-size:14px }
+  .coin{ height:52px; width:52px }
   .modal-b{ padding:14px 16px 18px }
   .modal-h{ padding:16px 16px 4px }
   .modal-f{ padding:12px 16px }
+
+  /* Payment method buttons: taller hit area */
+  .pay-btn{ padding:22px 12px }
+
+  /* ---- Toast: above mobile bottom bar ---- */
+  .toast{
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 10px);
+  }
 
   /* ---- Report / Abschluss / Schicht-Detail ---- */
   .stat-grid{ grid-template-columns: repeat(2, 1fr) }
   .two-col{ grid-template-columns:1fr }
   .report{ padding:10px }
   .stat .v{ font-size:20px }
+
+  /* Reduce card-box padding on mobile */
+  .card-box{ padding:14px }
+  .card-box h3{ font-size:12.5px }
+
+  /* Top-sellers table: compress last two columns */
+  .top-list .t-row{ grid-template-columns: 22px 1fr 50px 68px; gap:8px }
 
   /* ---- Admin ---- */
   .admin{
@@ -148,16 +175,20 @@
     overflow:auto;
   }
   .admin .side{
-    max-height:220px;
+    max-height:200px;
     border-radius: var(--r-lg);
-    /* collapse if few categories */
+    overflow-y:auto;
   }
-  /* product row: hide drag handle, compress layout */
+  /* Category items: full-height touch target */
+  .cat-item{ padding:11px 12px }
+
+  /* Product row: hide drag handle + color picker, keep name+price+delete */
   .prod-row{
-    grid-template-columns: 1fr 90px 40px;
+    grid-template-columns: 1fr 100px 44px;
   }
   .prod-row .drag{ display:none }
   .prod-row .swatch-pick{ display:none }
+  .prod-row .del{ padding:8px 10px }
 }
 
 /* ---------- slightly wider phones / small tablets ---------- */
@@ -165,4 +196,14 @@
   .pos{ grid-template-columns: 300px 1fr }
   .stat-grid{ grid-template-columns: repeat(2, 1fr) }
   .two-col{ grid-template-columns: 1fr }
+}
+
+/* ---------- very narrow screens (≤380px) ---------- */
+@media (max-width: 380px){
+  .stat-grid{ grid-template-columns: 1fr }
+  .grid{
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    padding:8px; gap:6px;
+  }
+  .product{ min-height:74px; padding:9px }
 }
