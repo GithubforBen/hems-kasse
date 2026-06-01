@@ -33,7 +33,7 @@ public class ExportService {
                 "Schicht-ID", "Verkäufer:in", "Klasse", "Rolle",
                 "Gestartet", "Abgeschlossen",
                 "Anfangsbestand (€)",
-                "Umsatz Bar (€)", "Umsatz Karte (€)", "Umsatz gesamt (€)",
+                "Umsatz Bar (€)", "Umsatz Karte (€)", "Umsatz PayPal (€)", "Umsatz gesamt (€)",
                 "Soll Bar (€)", "Ist Bar (€)", "Diff (€)",
                 "Bons", "Artikel verkauft",
                 "Anmerkungen");
@@ -48,6 +48,7 @@ public class ExportService {
                     euro(s.getOpeningCashCents()),
                     euro(s.getCashSalesCents()),
                     euro(s.getCardSalesCents()),
+                    euro(s.getPaypalSalesCents()),
                     euro(s.getTotalSalesCents()),
                     euro(s.getExpectedCashCents()),
                     euro(s.getCountedCashCents()),

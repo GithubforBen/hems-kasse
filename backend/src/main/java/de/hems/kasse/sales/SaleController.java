@@ -96,7 +96,7 @@ public class SaleController {
         if (method == PaymentMethod.BAR) {
             if (given < total) throw new ResponseStatusException(BAD_REQUEST, "Gegeben < Summe");
             change = given - total;
-        } else { // KARTE
+        } else { // KARTE / PAYPAL
             given = total;
         }
 

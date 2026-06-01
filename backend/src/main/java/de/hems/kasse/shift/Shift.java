@@ -53,6 +53,9 @@ public class Shift {
     @Column(name = "card_sales_cents")
     private Integer cardSalesCents;
 
+    @Column(name = "paypal_sales_cents")
+    private Integer paypalSalesCents;
+
     @Column(name = "total_sales_cents")
     private Integer totalSalesCents;
 

@@ -46,7 +46,7 @@ public class ShiftController {
             Instant startedAt, Instant closedAt,
             int openingCashCents,
             Integer countedCashCents, Integer expectedCashCents, Integer diffCents,
-            Integer cashSalesCents, Integer cardSalesCents, Integer totalSalesCents,
+            Integer cashSalesCents, Integer cardSalesCents, Integer paypalSalesCents, Integer totalSalesCents,
             Integer salesCount, Integer itemsSold,
             String notes
     ) {
@@ -55,7 +55,7 @@ public class ShiftController {
                     s.getStartedAt(), s.getClosedAt(),
                     s.getOpeningCashCents(),
                     s.getCountedCashCents(), s.getExpectedCashCents(), s.getDiffCents(),
-                    s.getCashSalesCents(), s.getCardSalesCents(), s.getTotalSalesCents(),
+                    s.getCashSalesCents(), s.getCardSalesCents(), s.getPaypalSalesCents(), s.getTotalSalesCents(),
                     s.getSalesCount(), s.getItemsSold(),
                     s.getNotes());
         }
@@ -63,7 +63,7 @@ public class ShiftController {
 
     public record SaleLine(UUID id, Instant ts, String method,
                            int totalCents, int givenCents, int changeCents,
-                           String byName, List<SaleItemDto> items) {}
+                           String byName, String transactionRef, List<SaleItemDto> items) {}
     public record SaleItemDto(String name, int priceCents, int qty, String color) {}
 
     public record ShiftDetailDto(ShiftDto shift, List<SaleLine> sales) {}
@@ -126,7 +126,7 @@ public class ShiftController {
                 .toList();
         return new SaleLine(x.getId(), x.getTs(), x.getMethod().name(),
                 x.getTotalCents(), x.getGivenCents(), x.getChangeCents(),
-                x.getByName(), items);
+                x.getByName(), x.getTransactionRef(), items);
     }
 
     // ----------------------------------------------------------------------

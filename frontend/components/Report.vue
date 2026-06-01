@@ -105,6 +105,11 @@ function printPage() {
           <div class="s">{{ sales.sales.filter(s => s.method === 'KARTE').length }} Zahlungen</div>
         </div>
         <div class="stat">
+          <div class="l">PayPal</div>
+          <div class="v">{{ formatEUR(sales.paypalCents) }}</div>
+          <div class="s">{{ sales.sales.filter(s => s.method === 'PAYPAL').length }} Zahlungen</div>
+        </div>
+        <div class="stat">
           <div class="l">Ø Bon</div>
           <div class="v">{{ formatEUR(avgCents) }}</div>
           <div class="s">seit {{ startedAt }} Uhr</div>

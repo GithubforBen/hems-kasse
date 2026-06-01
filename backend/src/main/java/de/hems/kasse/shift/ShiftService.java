@@ -58,7 +58,9 @@ public class ShiftService {
                 .mapToInt(Sale::getTotalCents).sum();
         int card = shiftSales.stream().filter(x -> x.getMethod() == PaymentMethod.KARTE)
                 .mapToInt(Sale::getTotalCents).sum();
-        int total = cash + card;
+        int paypal = shiftSales.stream().filter(x -> x.getMethod() == PaymentMethod.PAYPAL)
+                .mapToInt(Sale::getTotalCents).sum();
+        int total = cash + card + paypal;
         int expected = s.getOpeningCashCents() + cash;
         int diff = countedCashCents - expected;
         int itemsSold = shiftSales.stream()
@@ -71,6 +73,7 @@ public class ShiftService {
         s.setDiffCents(diff);
         s.setCashSalesCents(cash);
         s.setCardSalesCents(card);
+        s.setPaypalSalesCents(paypal);
         s.setTotalSalesCents(total);
         s.setSalesCount(shiftSales.size());
         s.setItemsSold(itemsSold);

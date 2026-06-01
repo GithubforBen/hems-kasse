@@ -9,7 +9,8 @@ export const useSalesStore = defineStore('sales', {
   getters: {
     cashCents: (s) => s.sales.filter(x => x.method === 'BAR').reduce((t, x) => t + x.totalCents, 0),
     cardCents: (s) => s.sales.filter(x => x.method === 'KARTE').reduce((t, x) => t + x.totalCents, 0),
-    totalCents(): number { return this.cashCents + this.cardCents },
+    paypalCents: (s) => s.sales.filter(x => x.method === 'PAYPAL').reduce((t, x) => t + x.totalCents, 0),
+    totalCents(): number { return this.cashCents + this.cardCents + this.paypalCents },
     itemsSold: (s) => s.sales.reduce((t, x) => t + x.items.reduce((q, i) => q + i.qty, 0), 0),
   },
 
@@ -19,7 +20,7 @@ export const useSalesStore = defineStore('sales', {
       this.sales = await api<SaleDto[]>('/api/sales')
     },
 
-    async record(body: { method: 'BAR' | 'KARTE'; givenCents: number; items: CartItem[]; transactionRef?: string }) {
+    async record(body: { method: 'BAR' | 'KARTE' | 'PAYPAL'; givenCents: number; items: CartItem[]; transactionRef?: string }) {
       const api = useApi()
       const sale = await api<SaleDto>('/api/sales', {
         method: 'POST',
