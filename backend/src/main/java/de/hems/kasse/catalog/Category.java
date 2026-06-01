@@ -29,5 +29,6 @@ public class Category {
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("sortOrder ASC")
+    @Builder.Default
     private List<Product> products = new ArrayList<>();
 }
