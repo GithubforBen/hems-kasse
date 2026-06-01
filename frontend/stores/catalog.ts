@@ -50,7 +50,19 @@ export const useCatalogStore = defineStore('catalog', {
       const updated = await api<ProductDto>(`/api/products/${id}`, { method: 'PATCH', body })
       for (const c of this.categories) {
         const i = c.products.findIndex(p => p.id === id)
-        if (i >= 0) c.products[i] = updated
+        if (i >= 0) {
+          if (body.categoryId && body.categoryId !== c.id) {
+            c.products.splice(i, 1)
+            const target = this.categories.find(x => x.id === body.categoryId)
+            if (target) {
+              target.products.push(updated)
+              target.products.sort((a, b) => a.sortOrder - b.sortOrder)
+            }
+          } else {
+            c.products[i] = updated
+            c.products.sort((a, b) => a.sortOrder - b.sortOrder)
+          }
+        }
       }
       return updated
     },
