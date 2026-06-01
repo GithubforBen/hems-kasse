@@ -1,0 +1,20 @@
+{
+  "name": "Schulkasse · Kuchenverkauf",
+  "short_name": "Schulkasse",
+  "description": "Kassensystem für den Kuchenverkauf",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3efe7",
+  "theme_color": "#18170f",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

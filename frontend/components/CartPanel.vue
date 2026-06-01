@@ -23,7 +23,7 @@ defineEmits<{ checkout: [] }>()
     <div class="cart-list">
       <div v-if="cart.items.length === 0" class="cart-empty">
         <div class="ico">🧁</div>
-        Tippe rechts auf ein Produkt,<br />
+        Tippe auf ein Produkt,<br />
         um es zum Warenkorb hinzuzufügen.
       </div>
 

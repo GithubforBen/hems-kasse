@@ -38,13 +38,16 @@ async function logout() {
 
     <div class="tabs">
       <NuxtLink to="/" class="tab" :class="{ active: activeIf('/') && route.path === '/' }">
-        {{ pref.theme === 'farm' ? '› POS' : 'Kasse' }}
+        <span class="tab-full">{{ pref.theme === 'farm' ? '› POS' : 'Kasse' }}</span>
+        <span class="tab-icon">🏪</span>
       </NuxtLink>
       <NuxtLink to="/abschluss" class="tab" :class="{ active: activeIf('/abschluss') }">
-        {{ pref.theme === 'farm' ? '› SHIFT' : 'Abschluss' }}
+        <span class="tab-full">{{ pref.theme === 'farm' ? '› SHIFT' : 'Abschluss' }}</span>
+        <span class="tab-icon">📊</span>
       </NuxtLink>
       <NuxtLink v-if="isAdmin" to="/admin" class="tab" :class="{ active: activeIf('/admin') }">
-        {{ pref.theme === 'farm' ? '› ADMIN' : 'Admin' }}
+        <span class="tab-full">{{ pref.theme === 'farm' ? '› ADMIN' : 'Admin' }}</span>
+        <span class="tab-icon">⚙️</span>
       </NuxtLink>
     </div>
 

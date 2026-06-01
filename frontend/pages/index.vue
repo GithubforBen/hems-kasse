@@ -38,16 +38,18 @@ function onPaid(sale: { totalCents: number; method: 'BAR' | 'KARTE' }) {
   <div class="app">
     <TopBar />
 
-    <!-- opening cash banner -->
-    <div v-if="shift.current && shift.current.openingCashCents === 0" class="opening-banner" @click="cashCountOpen = true">
-      <span class="opening-banner-ico">⚠</span>
-      <span>Kasseneinzählung fehlt –&nbsp;</span>
-      <span class="opening-banner-cta">Jetzt einzählen</span>
-    </div>
+    <div class="pos-wrap">
+      <!-- opening cash banner -->
+      <div v-if="shift.current && shift.current.openingCashCents === 0" class="opening-banner" @click="cashCountOpen = true">
+        <span class="opening-banner-ico">⚠</span>
+        <span>Kasseneinzählung fehlt –&nbsp;</span>
+        <span class="opening-banner-cta">Jetzt einzählen</span>
+      </div>
 
-    <div class="pos" :class="{ 'mob-cart': mobileTab === 'cart' }">
-      <CartPanel @checkout="checkout" />
-      <POSGrid />
+      <div class="pos" :class="{ 'mob-cart': mobileTab === 'cart' }">
+        <CartPanel @checkout="checkout" />
+        <POSGrid />
+      </div>
     </div>
 
     <!-- visible only on mobile via CSS -->
@@ -75,6 +77,17 @@ function onPaid(sale: { totalCents: number; method: 'BAR' | 'KARTE' }) {
 </template>
 
 <style scoped>
+.pos-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;
+}
+/* pos fills remaining height inside the wrapper */
+.pos-wrap :deep(.pos) {
+  flex: 1;
+}
 .opening-banner {
   display: flex;
   align-items: center;
