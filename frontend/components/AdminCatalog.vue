@@ -49,6 +49,33 @@ async function patchProd(id: string, body: Partial<{ name: string; priceCents: n
 async function delProd(id: string) {
   await catalog.deleteProduct(id)
 }
+
+async function moveProduct(prodId: string, direction: 'up' | 'down') {
+  if (!cat.value) return
+  const products = cat.value.products
+  const idx = products.findIndex(p => p.id === prodId)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (swapIdx < 0 || swapIdx >= products.length) return
+
+  const a = products[idx]!
+  const b = products[swapIdx]!
+  const aOrder = a.sortOrder
+  const bOrder = b.sortOrder
+
+  // Swap sortOrders; use distinct values if they happen to be equal
+  const newA = bOrder !== aOrder ? bOrder : direction === 'up' ? aOrder - 1 : aOrder + 1
+  const newB = bOrder !== aOrder ? aOrder : direction === 'up' ? bOrder + 1 : bOrder - 1
+
+  await Promise.all([
+    catalog.patchProduct(a.id, { sortOrder: newA }),
+    catalog.patchProduct(b.id, { sortOrder: newB }),
+  ])
+}
+
+async function moveToCat(prodId: string, newCatId: string) {
+  if (!newCatId) return
+  await catalog.patchProduct(prodId, { categoryId: newCatId })
+}
 </script>
 
 <template>
@@ -102,11 +129,22 @@ async function delProd(id: string) {
             v-if="cat.products.length === 0"
             class="empty-state"
             style="padding:40px 20px">
-            Noch keine Produkte. Mit „+ Produkt“ hinzufügen.
+            Noch keine Produkte. Mit „+ Produkt" hinzufügen.
           </div>
 
-          <div v-else v-for="p in cat.products" :key="p.id" class="prod-row">
-            <span class="drag" title="Ziehen zum Umsortieren">⋮⋮</span>
+          <div v-else v-for="(p, idx) in cat.products" :key="p.id" class="prod-row">
+            <div class="sort-btns">
+              <button
+                class="sort-btn"
+                :disabled="idx === 0"
+                @click="moveProduct(p.id, 'up')"
+                title="Nach oben">▲</button>
+              <button
+                class="sort-btn"
+                :disabled="idx === cat.products.length - 1"
+                @click="moveProduct(p.id, 'down')"
+                title="Nach unten">▼</button>
+            </div>
             <input
               class="nm-i"
               :value="p.name"
@@ -129,6 +167,20 @@ async function delProd(id: string) {
                 const eur = Number((e.target as HTMLInputElement).value.replace(',', '.')) || 0
                 patchProd(p.id, { priceCents: Math.round(eur * 100) })
               }" />
+            <select
+              class="cat-sel"
+              :value="cat.id"
+              @change="(e) => {
+                const val = (e.target as HTMLSelectElement).value
+                if (val !== cat!.id) moveToCat(p.id, val)
+                else (e.target as HTMLSelectElement).value = cat!.id
+              }"
+              title="In andere Kategorie verschieben">
+              <option
+                v-for="c in catalog.categories"
+                :key="c.id"
+                :value="c.id">{{ c.name }}</option>
+            </select>
             <button class="del" @click="delProd(p.id)">✕</button>
           </div>
         </div>
@@ -140,3 +192,38 @@ async function delProd(id: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.sort-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sort-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 1px 3px;
+  color: var(--c-muted, #888);
+  border-radius: 3px;
+}
+.sort-btn:hover:not(:disabled) {
+  background: var(--c-hover, #eee);
+  color: var(--c-text, #333);
+}
+.sort-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+.cat-sel {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--c-border, #ddd);
+  border-radius: 4px;
+  background: var(--c-bg, #fff);
+  color: var(--c-text, #333);
+  max-width: 110px;
+}
+</style>
