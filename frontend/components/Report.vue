@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatEUR, parseEuroToCents, centsToEuroString } from '~/utils/format'
+import { formatEUR, centsToEuroString } from '~/utils/format'
 import { DENOMS, NOTES, COINS } from '~/utils/denoms'
 
 const shift = useShiftStore()
@@ -9,16 +9,11 @@ const counts = reactive<Record<number, number>>({})
 for (const d of DENOMS) counts[d.cents] = 0
 
 const notes = ref('')
-const openingDisplay = ref('0,00')
+const countOpen = ref(false)
 
 onMounted(async () => {
   if (!shift.current) await shift.fetchCurrent()
-  openingDisplay.value = centsToEuroString(shift.current?.openingCashCents ?? 0)
   if (sales.sales.length === 0) await sales.fetch()
-})
-
-watch(() => shift.current?.openingCashCents, (v) => {
-  openingDisplay.value = centsToEuroString(v ?? 0)
 })
 
 const countedCents = computed(() =>
@@ -53,12 +48,6 @@ const top = computed(() => {
   return Object.entries(m).sort((a, b) => b[1].qty - a[1].qty).slice(0, 8)
 })
 const topMaxQty = computed(() => top.value[0]?.[1].qty || 1)
-
-async function onOpeningChange(v: string) {
-  openingDisplay.value = v.replace(/[^\d,.]/g, '').replace('.', ',')
-  const cents = parseEuroToCents(openingDisplay.value)
-  await shift.patchCurrent({ openingCashCents: cents })
-}
 
 const toast = useToastStore()
 async function closeShift() {
@@ -124,17 +113,14 @@ function printPage() {
             <span class="meta">{{ centsToEuroString(countedCents) }} € gezählt</span>
           </h3>
 
-          <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
-            <div style="flex:1">
-              <label class="label">Anfangsbestand (Wechselgeld)</label>
-              <input
-                class="input"
-                inputmode="decimal"
-                style="padding:10px 12px"
-                :value="openingDisplay"
-                @change="(e) => onOpeningChange((e.target as HTMLInputElement).value)"
-                placeholder="0,00" />
+          <div class="opening-row">
+            <div class="opening-info">
+              <span class="label">Anfangsbestand</span>
+              <span class="opening-val">{{ formatEUR(shift.current?.openingCashCents ?? 0) }}</span>
             </div>
+            <button class="btn secondary" style="flex-shrink:0" @click="countOpen = true">
+              {{ (shift.current?.openingCashCents ?? 0) === 0 ? 'Einzählen' : 'Ändern' }}
+            </button>
           </div>
 
           <div class="money-section">
@@ -239,4 +225,33 @@ function printPage() {
         </div>
       </div>
   </div>
+
+  <CashCountModal :open="countOpen" @close="countOpen = false" />
 </template>
+
+<style scoped>
+.opening-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.opening-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.opening-val {
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-num);
+  letter-spacing: -.01em;
+}
+body[data-theme="farm"] .opening-val {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+</style>
