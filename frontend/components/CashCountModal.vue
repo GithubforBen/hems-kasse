@@ -69,7 +69,7 @@ async function save() {
             <button
               v-for="c in COINS"
               :key="c.cents"
-              :class="['coin', c.cents >= 100 ? `coin-eu${c.cents / 100}` : (c.cents === 50 ? 'coin-au' : 'coin-cu')]"
+              :class="['coin', c.cents >= 100 ? `coin-eu${c.cents / 100}` : (c.cents >= 20 ? 'coin-au' : 'coin-cu')]"
               @click="counts[c.cents]++">
               <span class="v">{{ c.label }}</span>
             </button>

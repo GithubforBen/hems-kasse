@@ -37,12 +37,12 @@ async function delCat(id: string) {
   if (activeId.value === id) activeId.value = catalog.categories[0]?.id ?? null
 }
 
-async function addProd(catId: string) {
+async function addProd(catId: string, variable = false) {
   const c = catalog.categories.find(x => x.id === catId)
-  await catalog.addProduct(catId, { name: 'Neues Produkt', priceCents: 100, color: c?.color ?? 'peach' })
+  await catalog.addProduct(catId, { name: variable ? 'Divers' : 'Neues Produkt', priceCents: 0, color: c?.color ?? 'peach', variable })
 }
 
-async function patchProd(id: string, body: Partial<{ name: string; priceCents: number; color: string }>) {
+async function patchProd(id: string, body: Partial<{ name: string; priceCents: number; color: string; variable: boolean }>) {
   await catalog.patchProduct(id, body)
 }
 
@@ -162,11 +162,22 @@ async function moveToCat(prodId: string, newCatId: string) {
               type="number"
               step="0.10"
               min="0"
-              :value="(p.priceCents / 100).toFixed(2)"
+              :disabled="p.variable"
+              :title="p.variable ? 'Preis wird an der Kasse eingegeben' : ''"
+              :value="p.variable ? '' : (p.priceCents / 100).toFixed(2)"
+              :placeholder="p.variable ? 'Freier Preis' : '0.00'"
               @change="(e) => {
+                if (p.variable) return
                 const eur = Number((e.target as HTMLInputElement).value.replace(',', '.')) || 0
                 patchProd(p.id, { priceCents: Math.round(eur * 100) })
               }" />
+            <label class="variable-toggle" :title="p.variable ? 'Freier Preis – klicken zum Deaktivieren' : 'Festen Preis – klicken für freien Preis'">
+              <input
+                type="checkbox"
+                :checked="p.variable"
+                @change="patchProd(p.id, { variable: !p.variable })" />
+              <span>~</span>
+            </label>
             <select
               class="cat-sel"
               :value="cat.id"
@@ -186,7 +197,8 @@ async function moveToCat(prodId: string, newCatId: string) {
         </div>
 
         <div class="add-prod">
-          <button class="btn secondary" @click="addProd(cat.id)">+ Produkt hinzufügen</button>
+          <button class="btn secondary" @click="addProd(cat.id)">+ Produkt</button>
+          <button class="btn secondary" @click="addProd(cat.id, true)" title="Produkt mit frei eingebbarem Preis">+ Divers</button>
         </div>
       </template>
     </div>
@@ -194,6 +206,28 @@ async function moveToCat(prodId: string, newCatId: string) {
 </template>
 
 <style scoped>
+.variable-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.variable-toggle input { display: none }
+.variable-toggle span {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: var(--r-xs);
+  border: 1px solid var(--line-2);
+  font-size: 14px; font-weight: 700;
+  color: var(--ink-3);
+  background: var(--paper-2);
+  transition: .12s;
+}
+.variable-toggle input:checked + span {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
+}
 .sort-btns {
   display: flex;
   flex-direction: column;

@@ -31,4 +31,7 @@ public class Product {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
+
+    @Column(nullable = false)
+    private boolean variable;
 }

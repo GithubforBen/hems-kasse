@@ -37,7 +37,7 @@ export const useCatalogStore = defineStore('catalog', {
       this.categories = this.categories.filter(c => c.id !== id)
     },
 
-    async addProduct(catId: string, body: { name: string; priceCents: number; color: string }) {
+    async addProduct(catId: string, body: { name: string; priceCents: number; color: string; variable?: boolean }) {
       const api = useApi()
       const created = await api<ProductDto>(`/api/categories/${catId}/products`, { method: 'POST', body })
       const cat = this.categories.find(c => c.id === catId)
@@ -45,7 +45,7 @@ export const useCatalogStore = defineStore('catalog', {
       return created
     },
 
-    async patchProduct(id: string, body: Partial<{ name: string; priceCents: number; color: string; sortOrder: number; categoryId: string }>) {
+    async patchProduct(id: string, body: Partial<{ name: string; priceCents: number; color: string; sortOrder: number; categoryId: string; variable: boolean }>) {
       const api = useApi()
       const updated = await api<ProductDto>(`/api/products/${id}`, { method: 'PATCH', body })
       for (const c of this.categories) {

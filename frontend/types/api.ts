@@ -12,6 +12,7 @@ export interface ProductDto {
   priceCents: number
   color: string
   sortOrder: number
+  variable: boolean
 }
 
 export interface CategoryDto {
@@ -83,4 +84,5 @@ export interface CartItem {
   priceCents: number
   color: string
   qty: number
+  variable?: boolean
 }

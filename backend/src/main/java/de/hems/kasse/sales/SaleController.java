@@ -36,7 +36,7 @@ public class SaleController {
         this.shifts = shifts;
     }
 
-    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty) {}
+    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty, @Min(0) Integer priceCentsOverride) {}
     public record NewSale(@NotNull String method,
                           @Min(0) int givenCents,
                           @NotEmpty List<@Valid NewSaleItem> items,
@@ -79,13 +79,15 @@ public class SaleController {
             Product prod = products.findById(ni.productId())
                     .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST,
                             "Unbekanntes Produkt: " + ni.productId()));
-            int line = prod.getPriceCents() * ni.qty();
+            int priceCents = (prod.isVariable() && ni.priceCentsOverride() != null)
+                    ? ni.priceCentsOverride() : prod.getPriceCents();
+            int line = priceCents * ni.qty();
             total += line;
             items.add(SaleItem.builder()
                     .id(UUID.randomUUID())
                     .productId(prod.getId())
                     .name(prod.getName())
-                    .priceCents(prod.getPriceCents())
+                    .priceCents(priceCents)
                     .qty(ni.qty())
                     .color(prod.getColor())
                     .build());

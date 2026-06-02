@@ -28,9 +28,9 @@ public class CatalogController {
     }
 
     // ---------- DTOs ----------
-    public record ProductDto(UUID id, String name, int priceCents, String color, int sortOrder) {
+    public record ProductDto(UUID id, String name, int priceCents, String color, int sortOrder, boolean variable) {
         static ProductDto of(Product p) {
-            return new ProductDto(p.getId(), p.getName(), p.getPriceCents(), p.getColor(), p.getSortOrder());
+            return new ProductDto(p.getId(), p.getName(), p.getPriceCents(), p.getColor(), p.getSortOrder(), p.isVariable());
         }
     }
     public record CategoryDto(UUID id, String name, String color, int sortOrder, List<ProductDto> products) {
@@ -50,12 +50,14 @@ public class CatalogController {
 
     public record NewProduct(@NotBlank @Size(max = 120) String name,
                              @Min(0) int priceCents,
-                             @NotBlank @Size(max = 20) String color) {}
+                             @NotBlank @Size(max = 20) String color,
+                             boolean variable) {}
     public record PatchProduct(@Size(max = 120) String name,
                                Integer priceCents,
                                @Size(max = 20) String color,
                                Integer sortOrder,
-                               UUID categoryId) {}
+                               UUID categoryId,
+                               Boolean variable) {}
 
     // ---------- Reads ----------
     @GetMapping("/categories")
@@ -112,6 +114,7 @@ public class CatalogController {
                 .priceCents(body.priceCents())
                 .color(body.color())
                 .sortOrder(nextOrder)
+                .variable(body.variable())
                 .build();
         return ProductDto.of(products.save(p));
     }
@@ -130,6 +133,7 @@ public class CatalogController {
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Zielkategorie nicht gefunden"));
             p.setCategory(newCat);
         }
+        if (body.variable() != null) p.setVariable(body.variable());
         return ProductDto.of(products.save(p));
     }
 

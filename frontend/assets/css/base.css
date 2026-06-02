@@ -1,8 +1,5 @@
 /* ============================================================
    BASE — design tokens + global resets
-   Two themes share the same vars:
-     default (light / paper)      → :root
-     farm   (dark / agritech CLI) → body[data-theme="farm"]
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -28,7 +25,7 @@
   --ok-soft:      #e1f0e5;
   --bad:          #9b2c1c;
   --bad-soft:     #fbe2e0;
-  --accent:       var(--ink);   /* brand accent = ink in default */
+  --accent:       var(--ink);
 
   /* product chips */
   --yellow:#f4e6b5; --yellow-ink:#4a3a0c;
@@ -58,46 +55,6 @@
   --pad-panel: 14px;
 }
 
-/* ---------- FARM MODE (techy / dark) ---------- */
-body[data-theme="farm"]{
-  --bg:           #07100c;
-  --paper:        #0d1612;
-  --paper-2:      #111f19;
-  --paper-3:      #16271f;
-
-  --ink:          #d2e8d6;
-  --ink-2:        #7d978a;
-  --ink-3:        #506357;
-
-  --line:         #1c2e26;
-  --line-2:       #2a4234;
-
-  --ok:           #74f0a4;
-  --ok-soft:      #0f2b1d;
-  --bad:          #ff7a6a;
-  --bad-soft:     #2a120f;
-  --accent:       #74f0a4;
-
-  /* product chips — dim phosphor variants */
-  --yellow:#3a3614; --yellow-ink:#f1d96a;
-  --mint:  #102b1e; --mint-ink:  #8be7a8;
-  --lavender:#1d1b3a; --lavender-ink:#b6b1ff;
-  --peach: #3a1e10; --peach-ink: #ffb892;
-  --pink:  #341622; --pink-ink:  #ff9bb4;
-  --blue:  #0f2438; --blue-ink:  #8cc7ff;
-
-  --r-lg: 4px;
-  --r-md: 4px;
-  --r-sm: 3px;
-  --r-xs: 2px;
-
-  --shadow: 0 0 0 1px rgba(116,240,164,.04);
-  --shadow-lift: 0 0 0 1px rgba(116,240,164,.18), 0 0 24px -8px rgba(116,240,164,.18);
-
-  --font-head: var(--font-mono);
-  --font-num:  var(--font-mono);
-}
-
 /* ---------- resets ---------- */
 *{ box-sizing:border-box }
 html,body,#root{ height:100%; margin:0 }
@@ -114,14 +71,6 @@ input,select,textarea{ font:inherit; color:inherit }
 .num{ font-variant-numeric: tabular-nums }
 .mono{ font-family: var(--font-mono) }
 .scroll-y{ overflow-y: auto; min-height: 0 }
-
-/* farm-mode dotted backdrop */
-body[data-theme="farm"]{
-  background-image:
-    radial-gradient(rgba(116,240,164,.05) 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
-}
 
 /* ---------- product chip colors ---------- */
 .col-yellow{   background:var(--yellow);   color:var(--yellow-ink) }

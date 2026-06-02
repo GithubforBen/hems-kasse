@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const auth = useAuthStore()
-const pref = usePrefStore()
 
 const route = useRoute()
 const clock = ref(new Date())
@@ -38,27 +37,20 @@ async function logout() {
 
     <div class="tabs">
       <NuxtLink to="/" class="tab" :class="{ active: activeIf('/') && route.path === '/' }">
-        <span class="tab-full">{{ pref.theme === 'farm' ? '› POS' : 'Kasse' }}</span>
+        <span class="tab-full">Kasse</span>
         <span class="tab-icon">🏪</span>
       </NuxtLink>
       <NuxtLink to="/abschluss" class="tab" :class="{ active: activeIf('/abschluss') }">
-        <span class="tab-full">{{ pref.theme === 'farm' ? '› SHIFT' : 'Abschluss' }}</span>
+        <span class="tab-full">Abschluss</span>
         <span class="tab-icon">📊</span>
       </NuxtLink>
       <NuxtLink v-if="isAdmin" to="/admin" class="tab" :class="{ active: activeIf('/admin') }">
-        <span class="tab-full">{{ pref.theme === 'farm' ? '› ADMIN' : 'Admin' }}</span>
+        <span class="tab-full">Admin</span>
         <span class="tab-icon">⚙️</span>
       </NuxtLink>
     </div>
 
     <div class="right">
-      <button
-        class="theme-toggle"
-        @click="pref.toggle()"
-        :title="pref.theme === 'farm' ? 'Standard-Ansicht' : 'Farm-Modus (Terminal)'">
-        <span class="dot"></span>
-        {{ pref.theme === 'farm' ? 'FARM' : 'Farm-Modus' }}
-      </button>
       <span class="clock">{{ time }}</span>
       <div class="user-pill" v-if="auth.user">
         <div class="avatar">{{ (auth.user.name || '?')[0]!.toUpperCase() }}</div>
