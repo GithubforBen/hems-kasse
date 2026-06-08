@@ -2,8 +2,10 @@
 import { COLORS, swatchCls } from '~/utils/colors'
 
 const catalog = useCatalogStore()
+const toast = useToastStore()
 const activeId = ref<string | null>(null)
 const newCatName = ref('')
+const componentsForId = ref<string | null>(null)
 
 onMounted(async () => {
   await catalog.fetch()
@@ -45,6 +47,24 @@ async function addProd(catId: string, variable = false) {
 async function patchProd(id: string, body: Partial<{ name: string; priceCents: number; color: string; variable: boolean }>) {
   await catalog.patchProduct(id, body)
 }
+
+async function setPlu(id: string, plu: string) {
+  try {
+    await catalog.patchProduct(id, { plu: plu.trim() || null })
+  } catch (e: any) {
+    if (e?.response?.status === 409) toast.show('PLU bereits vergeben')
+    else throw e
+  }
+}
+
+const componentsProduct = computed(() => {
+  if (!componentsForId.value) return null
+  for (const c of catalog.categories) {
+    const p = c.products.find(x => x.id === componentsForId.value)
+    if (p) return p
+  }
+  return null
+})
 
 async function delProd(id: string) {
   await catalog.deleteProduct(id)
@@ -178,6 +198,20 @@ async function moveToCat(prodId: string, newCatId: string) {
                 @change="patchProd(p.id, { variable: !p.variable })" />
               <span>~</span>
             </label>
+            <input
+              class="plu-i"
+              :value="p.plu ?? ''"
+              placeholder="PLU"
+              title="PLU-Code"
+              @change="(e) => setPlu(p.id, (e.target as HTMLInputElement).value)" />
+            <button
+              v-if="!p.variable"
+              class="btn secondary compose-btn"
+              :class="{ active: p.composed }"
+              @click="componentsForId = p.id"
+              :title="p.composed ? 'Verkaufstaste: ' + p.components.map(c => `${c.qty}× ${c.name}`).join(' + ') : 'Als Verkaufstaste mehrere Produkte zusammenfassen'">
+              {{ p.composed ? '⚙ Verkaufstaste' : 'Komposition…' }}
+            </button>
             <select
               class="cat-sel"
               :value="cat.id"
@@ -202,6 +236,12 @@ async function moveToCat(prodId: string, newCatId: string) {
         </div>
       </template>
     </div>
+
+    <ProductComponentsModal
+      v-if="componentsProduct"
+      :product="componentsProduct"
+      :all-products="catalog.categories.flatMap(c => c.products)"
+      @close="componentsForId = null" />
   </div>
 </template>
 
@@ -259,5 +299,24 @@ async function moveToCat(prodId: string, newCatId: string) {
   background: var(--c-bg, #fff);
   color: var(--c-text, #333);
   max-width: 110px;
+}
+.plu-i {
+  width: 64px;
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-xs);
+  background: var(--paper-2);
+  color: var(--ink-1);
+}
+.compose-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.compose-btn.active {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
 }
 </style>

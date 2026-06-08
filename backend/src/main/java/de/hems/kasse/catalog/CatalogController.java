@@ -4,16 +4,21 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.*;
 
 @RestController
 @RequestMapping("/api")
@@ -21,16 +26,28 @@ public class CatalogController {
 
     private final CategoryRepository categories;
     private final ProductRepository products;
+    private final ProductComponentRepository components;
 
-    public CatalogController(CategoryRepository categories, ProductRepository products) {
+    public CatalogController(CategoryRepository categories, ProductRepository products, ProductComponentRepository components) {
         this.categories = categories;
         this.products = products;
+        this.components = components;
     }
 
     // ---------- DTOs ----------
-    public record ProductDto(UUID id, String name, int priceCents, String color, int sortOrder, boolean variable) {
+    public record ComponentDto(UUID productId, String name, int qty) {
+        static ComponentDto of(ProductComponent pc) {
+            return new ComponentDto(pc.getComponentProduct().getId(), pc.getComponentProduct().getName(), pc.getQty());
+        }
+    }
+    public record ProductDto(UUID id, String name, int priceCents, String color, int sortOrder, boolean variable,
+                             String plu, boolean composed, List<ComponentDto> components) {
         static ProductDto of(Product p) {
-            return new ProductDto(p.getId(), p.getName(), p.getPriceCents(), p.getColor(), p.getSortOrder(), p.isVariable());
+            var comps = p.getComponents().stream()
+                    .sorted(Comparator.comparing(pc -> pc.getComponentProduct().getName()))
+                    .map(ComponentDto::of).toList();
+            return new ProductDto(p.getId(), p.getName(), p.getPriceCents(), p.getColor(), p.getSortOrder(), p.isVariable(),
+                    p.getPlu(), p.isComposed(), comps);
         }
     }
     public record CategoryDto(UUID id, String name, String color, int sortOrder, List<ProductDto> products) {
@@ -51,13 +68,18 @@ public class CatalogController {
     public record NewProduct(@NotBlank @Size(max = 120) String name,
                              @Min(0) int priceCents,
                              @NotBlank @Size(max = 20) String color,
-                             boolean variable) {}
+                             boolean variable,
+                             @Size(max = 40) String plu) {}
     public record PatchProduct(@Size(max = 120) String name,
                                Integer priceCents,
                                @Size(max = 20) String color,
                                Integer sortOrder,
                                UUID categoryId,
-                               Boolean variable) {}
+                               Boolean variable,
+                               @Size(max = 40) String plu) {}
+
+    public record NewComponent(@NotNull UUID componentProductId, @Min(1) int qty) {}
+    public record SetComponents(@NotNull List<@Valid NewComponent> components) {}
 
     // ---------- Reads ----------
     @GetMapping("/categories")
@@ -115,8 +137,9 @@ public class CatalogController {
                 .color(body.color())
                 .sortOrder(nextOrder)
                 .variable(body.variable())
+                .plu(normalisePlu(body.plu()))
                 .build();
-        return ProductDto.of(products.save(p));
+        return ProductDto.of(saveProduct(p));
     }
 
     @PatchMapping("/products/{id}")
@@ -134,7 +157,8 @@ public class CatalogController {
             p.setCategory(newCat);
         }
         if (body.variable() != null) p.setVariable(body.variable());
-        return ProductDto.of(products.save(p));
+        if (body.plu() != null) p.setPlu(normalisePlu(body.plu()));
+        return ProductDto.of(saveProduct(p));
     }
 
     @DeleteMapping("/products/{id}")
@@ -142,6 +166,84 @@ public class CatalogController {
     @Transactional
     public void deleteProduct(@PathVariable UUID id) {
         if (!products.existsById(id)) throw new ResponseStatusException(NOT_FOUND);
-        products.deleteById(id);
+        try {
+            products.deleteById(id);
+            products.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(CONFLICT, "Produkt wird in Verkaufstasten verwendet");
+        }
+    }
+
+    // ---------- Komposition (Verkaufstasten) ----------
+    @GetMapping("/products/{id}/components")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ComponentDto> getComponents(@PathVariable UUID id) {
+        Product p = products.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+        return p.getComponents().stream()
+                .sorted(Comparator.comparing(pc -> pc.getComponentProduct().getName()))
+                .map(ComponentDto::of).toList();
+    }
+
+    /** Replace-all semantics: the given list becomes the product's full recipe. Empty list = simple product again. */
+    @PutMapping("/products/{id}/components")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public ProductDto setComponents(@PathVariable UUID id, @RequestBody @Valid SetComponents body) {
+        Product parent = products.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+
+        Set<UUID> seen = new HashSet<>();
+        List<ProductComponent> next = new ArrayList<>();
+        for (NewComponent nc : body.components()) {
+            if (!seen.add(nc.componentProductId())) {
+                throw new ResponseStatusException(BAD_REQUEST, "Produkt mehrfach als Bestandteil angegeben");
+            }
+            if (nc.componentProductId().equals(parent.getId())) {
+                throw new ResponseStatusException(BAD_REQUEST, "Ein Produkt kann sich nicht selbst enthalten");
+            }
+            Product comp = products.findById(nc.componentProductId())
+                    .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Unbekannter Bestandteil: " + nc.componentProductId()));
+            if (comp.isVariable()) {
+                throw new ResponseStatusException(BAD_REQUEST, "„" + comp.getName() + "“ hat einen freien Preis und kann kein Bestandteil sein");
+            }
+            if (introducesCycle(parent, comp, new HashSet<>())) {
+                throw new ResponseStatusException(BAD_REQUEST, "„" + comp.getName() + "“ würde einen Kompositions-Kreislauf erzeugen");
+            }
+            next.add(ProductComponent.builder()
+                    .id(UUID.randomUUID())
+                    .parentProduct(parent)
+                    .componentProduct(comp)
+                    .qty(nc.qty())
+                    .build());
+        }
+
+        parent.getComponents().clear();
+        parent.getComponents().addAll(next);
+        parent.setComposed(!next.isEmpty());
+        return ProductDto.of(saveProduct(parent));
+    }
+
+    /** True if making {@code candidate} a component of {@code parent} would create a cycle (candidate transitively contains parent). */
+    private boolean introducesCycle(Product parent, Product candidate, Set<UUID> visited) {
+        if (candidate.getId().equals(parent.getId())) return true;
+        if (!visited.add(candidate.getId())) return false;
+        for (ProductComponent pc : candidate.getComponents()) {
+            if (introducesCycle(parent, pc.getComponentProduct(), visited)) return true;
+        }
+        return false;
+    }
+
+    private static String normalisePlu(String plu) {
+        if (plu == null) return null;
+        String trimmed = plu.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Product saveProduct(Product p) {
+        try {
+            Product saved = products.saveAndFlush(p);
+            return saved;
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(CONFLICT, "PLU bereits vergeben");
+        }
     }
 }

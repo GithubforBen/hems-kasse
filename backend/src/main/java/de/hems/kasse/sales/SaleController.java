@@ -42,13 +42,20 @@ public class SaleController {
                           @NotEmpty List<@Valid NewSaleItem> items,
                           String transactionRef) {}
 
-    public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color) {}
+    public record SaleItemComponentDto(UUID productId, String name, int qty) {
+        static SaleItemComponentDto of(SaleItemComponent c) {
+            return new SaleItemComponentDto(c.getProductId(), c.getName(), c.getQty());
+        }
+    }
+    public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color,
+                              List<SaleItemComponentDto> components) {}
     public record SaleDto(UUID id, Instant ts, String method,
                           int totalCents, int givenCents, int changeCents,
                           String byName, List<SaleItemDto> items, String transactionRef) {
         static SaleDto of(Sale s) {
             var items = s.getItems().stream()
-                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor()))
+                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor(),
+                            it.getComponents().stream().map(SaleItemComponentDto::of).toList()))
                     .toList();
             return new SaleDto(s.getId(), s.getTs(), s.getMethod().name(),
                     s.getTotalCents(), s.getGivenCents(), s.getChangeCents(),
@@ -86,6 +93,16 @@ public class SaleController {
                     ? ni.priceCentsOverride() : prod.getPriceCents();
             int line = priceCents * ni.qty();
             total += line;
+
+            List<SaleItemComponent> comps = prod.getComponents().stream()
+                    .map(pc -> SaleItemComponent.builder()
+                            .id(UUID.randomUUID())
+                            .productId(pc.getComponentProduct().getId())
+                            .name(pc.getComponentProduct().getName())
+                            .qty(pc.getQty() * ni.qty())
+                            .build())
+                    .toList();
+
             items.add(SaleItem.builder()
                     .id(UUID.randomUUID())
                     .productId(prod.getId())
@@ -93,6 +110,7 @@ public class SaleController {
                     .priceCents(priceCents)
                     .qty(ni.qty())
                     .color(prod.getColor())
+                    .components(new ArrayList<>(comps))
                     .build());
         }
 

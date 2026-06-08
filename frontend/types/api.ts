@@ -6,6 +6,12 @@ export interface AuthUser {
   role: Role
 }
 
+export interface ComponentDto {
+  productId: string | null
+  name: string
+  qty: number
+}
+
 export interface ProductDto {
   id: string
   name: string
@@ -13,6 +19,9 @@ export interface ProductDto {
   color: string
   sortOrder: number
   variable: boolean
+  plu: string | null
+  composed: boolean
+  components: ComponentDto[]
 }
 
 export interface RegisterDto {
@@ -36,6 +45,7 @@ export interface SaleItemDto {
   priceCents: number
   qty: number
   color: string
+  components: ComponentDto[]
 }
 
 export interface SaleDto {
