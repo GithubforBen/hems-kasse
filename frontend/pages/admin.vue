@@ -16,7 +16,7 @@ onMounted(() => {
   register.fetch().catch(() => {})
 })
 
-const tab = ref<'catalog' | 'registers' | 'shifts'>('catalog')
+const tab = ref<'catalog' | 'registers' | 'inventory' | 'shifts'>('catalog')
 </script>
 
 <template>
@@ -37,6 +37,11 @@ const tab = ref<'catalog' | 'registers' | 'shifts'>('catalog')
           @click="tab = 'registers'">Kassetten</button>
         <button
           class="btn"
+          :class="tab === 'inventory' ? '' : 'ghost'"
+          style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
+          @click="tab = 'inventory'">Lager</button>
+        <button
+          class="btn"
           :class="tab === 'shifts' ? '' : 'ghost'"
           style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
           @click="tab = 'shifts'">Schichten · Alle</button>
@@ -45,6 +50,7 @@ const tab = ref<'catalog' | 'registers' | 'shifts'>('catalog')
       <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
         <AdminCatalog v-if="tab === 'catalog'" />
         <AdminRegisters v-else-if="tab === 'registers'" />
+        <AdminInventory v-else-if="tab === 'inventory'" />
 
         <div v-else class="scroll-y" style="padding:18px 22px 28px;flex:1">
           <div class="card-box">

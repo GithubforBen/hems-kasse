@@ -97,6 +97,43 @@ export interface ShiftDetailDto {
   }>
 }
 
+export interface InventoryCountLineDto {
+  productId: string | null
+  productName: string
+  countedQty: number
+  expectedQty: number
+  diffQty: number
+}
+
+export interface InventoryCountDto {
+  id: string
+  ts: string
+  byName: string
+  notes: string | null
+  lines: InventoryCountLineDto[]
+}
+
+export interface StockIntakeLineDto {
+  productId: string | null
+  productName: string
+  qty: number
+}
+
+export interface StockIntakeDto {
+  id: string
+  ts: string
+  byName: string
+  notes: string | null
+  lines: StockIntakeLineDto[]
+}
+
+export interface ExpectedStockDto {
+  productId: string
+  name: string
+  expectedQty: number
+  baselineTs: string | null
+}
+
 export interface CartItem {
   productId: string
   name: string

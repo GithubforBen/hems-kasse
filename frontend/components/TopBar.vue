@@ -51,6 +51,10 @@ async function changeRegister() {
         <span class="tab-full">Abschluss</span>
         <span class="tab-icon">📊</span>
       </NuxtLink>
+      <NuxtLink to="/lager" class="tab" :class="{ active: activeIf('/lager') }">
+        <span class="tab-full">Lager</span>
+        <span class="tab-icon">📦</span>
+      </NuxtLink>
       <NuxtLink v-if="isAdmin" to="/admin" class="tab" :class="{ active: activeIf('/admin') }">
         <span class="tab-full">Admin</span>
         <span class="tab-icon">⚙️</span>
