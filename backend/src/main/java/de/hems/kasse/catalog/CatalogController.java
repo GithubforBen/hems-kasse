@@ -1,5 +1,6 @@
 package de.hems.kasse.catalog;
 
+import de.hems.kasse.export.CsvWriter;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -7,10 +8,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -18,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static de.hems.kasse.export.CsvWriter.euro;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
@@ -230,6 +238,33 @@ public class CatalogController {
             if (introducesCycle(parent, pc.getComponentProduct(), visited)) return true;
         }
         return false;
+    }
+
+    @GetMapping("/products/export.csv")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportCsv() {
+        var w = new CsvWriter().row("Kategorie", "Produkt", "PLU", "Preis (€)", "Variabel", "Verkaufstaste", "Bestandteile");
+        for (Category c : categories.findAllByOrderBySortOrderAsc()) {
+            var sorted = c.getProducts().stream().sorted(Comparator.comparingInt(Product::getSortOrder)).toList();
+            for (Product p : sorted) {
+                String comps = p.getComponents().stream()
+                        .sorted(Comparator.comparing(pc -> pc.getComponentProduct().getName()))
+                        .map(pc -> pc.getQty() + "× " + pc.getComponentProduct().getName())
+                        .reduce((a, b) -> a + ", " + b).orElse("");
+                w.row(c.getName(), p.getName(), p.getPlu() == null ? "" : p.getPlu(), euro(p.getPriceCents()),
+                        p.isVariable() ? "Ja" : "Nein", p.isComposed() ? "Ja" : "Nein", comps);
+            }
+        }
+        return csv(w.toCsv(), "katalog-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
+    }
+
+    private static ResponseEntity<byte[]> csv(String body, String filename) {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv; charset=utf-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(bytes);
     }
 
     private static String normalisePlu(String plu) {

@@ -67,6 +67,13 @@ async function remove(id: string) {
           placeholder="Neue Kassette, z. B. „Kassette 2"…" />
         <button class="btn" @click="add">+</button>
       </div>
+
+      <ExportButton
+        path="/api/registers/export.csv"
+        label="Kassetten"
+        icon="🗄️"
+        hint="Liste aller Kassetten als CSV"
+        style="margin-top:14px" />
     </div>
   </div>
 </template>

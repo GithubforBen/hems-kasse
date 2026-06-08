@@ -125,6 +125,13 @@ async function moveToCat(prodId: string, newCatId: string) {
           placeholder="Neue Kategorie…" />
         <button class="btn" @click="addCat">+</button>
       </div>
+
+      <ExportButton
+        path="/api/products/export.csv"
+        label="Katalog"
+        icon="🗂️"
+        hint="Kategorien, Produkte, PLU & Kompositionen als CSV"
+        style="margin-top:14px" />
     </div>
 
     <div class="main">

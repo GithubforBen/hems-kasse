@@ -209,6 +209,11 @@ function diffClass(d: number): string {
     <!-- Verlauf -->
     <div v-else class="card-box">
       <h3><span>Inventuren</span><span class="meta">{{ inventory.counts.length }}</span></h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <ExportButton path="/api/inventory/export.csv" :query="{ type: 'counts' }" label="Inventuren" icon="📋" hint="Alle Inventuren als CSV" />
+        <ExportButton path="/api/inventory/export.csv" :query="{ type: 'intakes' }" label="Wareneingänge" icon="📦" hint="Alle Wareneingänge als CSV" />
+        <ExportButton path="/api/inventory/export.csv" :query="{ type: 'expected' }" label="Lagerbestand" icon="📊" hint="Aktuell erwarteter Lagerbestand als CSV" />
+      </div>
       <div v-if="inventory.counts.length === 0" class="report-empty">Noch keine Inventur durchgeführt.</div>
       <div v-else class="lager-history">
         <div v-for="c in inventory.counts" :key="c.id" class="lager-entry">

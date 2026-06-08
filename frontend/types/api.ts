@@ -134,6 +134,53 @@ export interface ExpectedStockDto {
   baselineTs: string | null
 }
 
+export interface ProductStatDto {
+  name: string
+  qty: number
+  revenueCents: number
+}
+
+export interface TimeBucketDto {
+  bucket: number
+  qty: number
+  revenueCents: number
+}
+
+export interface DailyPointDto {
+  date: string
+  qty: number
+  revenueCents: number
+  sales: number
+}
+
+export interface ProductHourPointDto {
+  product: string
+  hour: number
+  qty: number
+}
+
+export interface ShortageStatDto {
+  name: string
+  countsWithShortage: number
+  totalShortage: number
+  worstShortage: number
+}
+
+export interface StatsDto {
+  from: string
+  to: string
+  totalRevenueCents: number
+  totalQty: number
+  totalSales: number
+  topByQty: ProductStatDto[]
+  topByRevenue: ProductStatDto[]
+  byHour: TimeBucketDto[]
+  byWeekday: TimeBucketDto[]
+  daily: DailyPointDto[]
+  productHours: ProductHourPointDto[]
+  shortages: ShortageStatDto[]
+}
+
 export interface CartItem {
   productId: string
   name: string

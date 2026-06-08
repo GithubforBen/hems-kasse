@@ -1,19 +1,30 @@
 package de.hems.kasse.inventory;
 
 import de.hems.kasse.auth.KassePrincipal;
+import de.hems.kasse.export.CsvWriter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
+import static de.hems.kasse.export.CsvWriter.dateTime;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 /**
  * Lager: Inventuren (Zählungen), Wareneingänge und der daraus abgeleitete Fehlbestand.
@@ -114,5 +125,59 @@ public class InventoryController {
                 .map(l -> new InventoryService.IntakeLineInput(l.productId(), l.qty()))
                 .toList();
         return IntakeDto.of(service.recordIntake(p.name(), lines, body.notes()));
+    }
+
+    // ---------- CSV export ----------
+    @GetMapping("/export.csv")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportCsv(@RequestParam(defaultValue = "counts") String type) {
+        String stamp = LocalDate.now(ZoneOffset.UTC).toString();
+        return switch (type) {
+            case "counts" -> csv(countsCsv(), "inventuren-" + stamp + ".csv");
+            case "intakes" -> csv(intakesCsv(), "wareneingaenge-" + stamp + ".csv");
+            case "expected" -> csv(expectedCsv(), "lagerbestand-" + stamp + ".csv");
+            default -> throw new ResponseStatusException(BAD_REQUEST, "Unbekannter Export-Typ: " + type);
+        };
+    }
+
+    private String countsCsv() {
+        var w = new CsvWriter().row("Datum", "Erfasst von", "Produkt", "Erwartet", "Gezählt", "Fehlbestand", "Notiz");
+        for (InventoryCount c : service.countHistory()) {
+            for (InventoryCountLine l : c.getLines()) {
+                w.row(dateTime(c.getTs()), c.getByName(), l.getProductName(),
+                        l.getExpectedQty(), l.getCountedQty(), signedInt(l.getDiffQty()), nullToEmpty(c.getNotes()));
+            }
+        }
+        return w.toCsv();
+    }
+
+    private String intakesCsv() {
+        var w = new CsvWriter().row("Datum", "Erfasst von", "Produkt", "Menge", "Notiz");
+        for (StockIntake i : service.intakeHistory()) {
+            for (StockIntakeLine l : i.getLines()) {
+                w.row(dateTime(i.getTs()), i.getByName(), l.getProductName(), l.getQty(), nullToEmpty(i.getNotes()));
+            }
+        }
+        return w.toCsv();
+    }
+
+    private String expectedCsv() {
+        var w = new CsvWriter().row("Produkt", "Erwartet", "Basis (letzte Inventur)");
+        for (var l : service.currentExpectedStock()) {
+            w.row(l.name(), l.expectedQty(), l.baselineTs() != null ? dateTime(l.baselineTs()) : "noch keine Inventur");
+        }
+        return w.toCsv();
+    }
+
+    private static String nullToEmpty(String s) { return s == null ? "" : s; }
+    private static String signedInt(int n) { return n > 0 ? "+" + n : String.valueOf(n); }
+
+    private static ResponseEntity<byte[]> csv(String body, String filename) {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv; charset=utf-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(bytes);
     }
 }

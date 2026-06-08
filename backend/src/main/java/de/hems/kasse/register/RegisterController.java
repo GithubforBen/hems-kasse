@@ -1,14 +1,21 @@
 package de.hems.kasse.register;
 
+import de.hems.kasse.export.CsvWriter;
 import de.hems.kasse.shift.ShiftRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,5 +85,24 @@ public class RegisterController {
         }
         r.setActive(false);
         registers.save(r);
+    }
+
+    @GetMapping("/export.csv")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportCsv() {
+        var w = new CsvWriter().row("Name", "Reihenfolge", "Aktiv");
+        for (Register r : registers.findAllByOrderBySortOrderAsc()) {
+            w.row(r.getName(), r.getSortOrder(), r.isActive() ? "Ja" : "Nein");
+        }
+        return csv(w.toCsv(), "kassetten-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
+    }
+
+    private static ResponseEntity<byte[]> csv(String body, String filename) {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv; charset=utf-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(bytes);
     }
 }
