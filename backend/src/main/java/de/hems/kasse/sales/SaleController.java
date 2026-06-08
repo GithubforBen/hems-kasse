@@ -57,14 +57,17 @@ public class SaleController {
     }
 
     @GetMapping
-    public List<SaleDto> listForCurrentShift(@AuthenticationPrincipal KassePrincipal p) {
-        Shift s = shifts.currentOrOpen(p);
+    public List<SaleDto> listForCurrentShift(@AuthenticationPrincipal KassePrincipal p,
+                                             @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId) {
+        Shift s = shifts.currentOrOpen(p, registerId);
         return sales.findAllByShiftIdOrderByTsDesc(s.getId()).stream().map(SaleDto::of).toList();
     }
 
     @PostMapping
     @Transactional
-    public SaleDto record(@AuthenticationPrincipal KassePrincipal p, @RequestBody @Valid NewSale body) {
+    public SaleDto record(@AuthenticationPrincipal KassePrincipal p,
+                          @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId,
+                          @RequestBody @Valid NewSale body) {
         PaymentMethod method;
         try {
             method = PaymentMethod.valueOf(body.method().toUpperCase(Locale.ROOT));
@@ -72,7 +75,7 @@ public class SaleController {
             throw new ResponseStatusException(BAD_REQUEST, "Unknown payment method");
         }
 
-        Shift shift = shifts.currentOrOpen(p);
+        Shift shift = shifts.currentOrOpen(p, registerId);
         List<SaleItem> items = new ArrayList<>(body.items().size());
         int total = 0;
         for (NewSaleItem ni : body.items()) {

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const auth = useAuthStore()
+const register = useRegisterStore()
+const router = useRouter()
 
 const route = useRoute()
 const clock = ref(new Date())
@@ -22,6 +24,11 @@ function activeIf(prefix: string) {
 
 async function logout() {
   await auth.logout()
+}
+
+async function changeRegister() {
+  register.clear()
+  await router.push('/kassette')
 }
 </script>
 
@@ -56,6 +63,12 @@ async function logout() {
         <div class="avatar">{{ (auth.user.name || '?')[0]!.toUpperCase() }}</div>
         <span style="font-size:13px;font-weight:550;color:var(--ink)">{{ auth.user.name }}</span>
         <span v-if="auth.user.klasse" style="color:var(--ink-3);font-size:12px">{{ auth.user.klasse }}</span>
+        <template v-if="auth.user.role === 'VERKAUF' && register.selected">
+          <span style="color:var(--ink-3);font-size:12px">·</span>
+          <button class="btn ghost" @click="changeRegister" title="Kassette wechseln" style="padding:2px 8px;font-size:12px;gap:4px">
+            🗄️ {{ register.selected.name }}
+          </button>
+        </template>
       </div>
       <button class="btn ghost" @click="logout" title="Abmelden" style="padding:6px 10px">Abmelden</button>
     </div>

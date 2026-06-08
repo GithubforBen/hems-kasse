@@ -15,6 +15,13 @@ export interface ProductDto {
   variable: boolean
 }
 
+export interface RegisterDto {
+  id: string
+  name: string
+  sortOrder: number
+  active: boolean
+}
+
 export interface CategoryDto {
   id: string
   name: string
@@ -48,6 +55,8 @@ export interface ShiftDto {
   userName: string
   klasse: string | null
   role: Role
+  registerId: string | null
+  registerName: string | null
   startedAt: string
   closedAt: string | null
   openingCashCents: number

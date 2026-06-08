@@ -43,6 +43,7 @@ public class ShiftController {
 
     public record ShiftDto(
             UUID id, String userName, String klasse, String role,
+            UUID registerId, String registerName,
             Instant startedAt, Instant closedAt,
             int openingCashCents,
             Integer countedCashCents, Integer expectedCashCents, Integer diffCents,
@@ -52,6 +53,7 @@ public class ShiftController {
     ) {
         public static ShiftDto of(Shift s) {
             return new ShiftDto(s.getId(), s.getUserName(), s.getKlasse(), s.getRole(),
+                    s.getRegisterId(), s.getRegisterName(),
                     s.getStartedAt(), s.getClosedAt(),
                     s.getOpeningCashCents(),
                     s.getCountedCashCents(), s.getExpectedCashCents(), s.getDiffCents(),
@@ -72,22 +74,25 @@ public class ShiftController {
     public record CloseShift(@Min(0) int countedCashCents, String notes) {}
 
     @GetMapping("/current")
-    public ShiftDto current(@AuthenticationPrincipal KassePrincipal p) {
-        return ShiftDto.of(service.currentOrOpen(p));
+    public ShiftDto current(@AuthenticationPrincipal KassePrincipal p,
+                            @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId) {
+        return ShiftDto.of(service.currentOrOpen(p, registerId));
     }
 
     @PatchMapping("/current")
     public ShiftDto patchCurrent(@AuthenticationPrincipal KassePrincipal p,
+                                 @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId,
                                  @RequestBody @Valid PatchShift body) {
-        return ShiftDto.of(service.setOpeningCash(p,
+        return ShiftDto.of(service.setOpeningCash(p, registerId,
                 body.openingCashCents() == null ? -1 : body.openingCashCents(),
                 body.notes()));
     }
 
     @PostMapping("/current/close")
     public ShiftDto close(@AuthenticationPrincipal KassePrincipal p,
+                          @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId,
                           @RequestBody @Valid CloseShift body) {
-        return ShiftDto.of(service.close(p, body.countedCashCents(), body.notes()));
+        return ShiftDto.of(service.close(p, registerId, body.countedCashCents(), body.notes()));
     }
 
     @GetMapping("/mine")
@@ -102,11 +107,13 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String klasse,
+            @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         return shifts.searchClosed(
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
+                registerId,
                 escapeLike(q))
                 .stream().map(ShiftDto::of).toList();
     }
@@ -162,12 +169,14 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String klasse,
+            @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         ExportType t = parseType(type);
         var list = shifts.searchClosed(
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 klasse == null || klasse.isBlank() ? null : klasse,
+                registerId,
                 escapeLike(q));
         String body = exports.render(t, list);
         return csv(body, "schichten-" + t.slug() + "-" + LocalDate.now(ZoneOffset.UTC) + ".csv");

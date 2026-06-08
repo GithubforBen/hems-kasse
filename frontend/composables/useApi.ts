@@ -10,14 +10,17 @@ import type { FetchOptions } from 'ofetch'
 export const useApi = () => {
   const { public: { apiBase } } = useRuntimeConfig()
   const auth = useAuthStore()
+  const register = useRegisterStore()
 
   const api = $fetch.create({
     baseURL: apiBase,
     onRequest({ options }) {
       const token = auth.token
-      if (token) {
+      const registerId = register.selectedId
+      if (token || registerId) {
         const headers = new Headers(options.headers)
-        headers.set('Authorization', `Bearer ${token}`)
+        if (token) headers.set('Authorization', `Bearer ${token}`)
+        if (registerId) headers.set('X-Kasse-Register-Id', registerId)
         options.headers = headers
       }
     },

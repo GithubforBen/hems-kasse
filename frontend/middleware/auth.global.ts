@@ -4,10 +4,14 @@
  */
 export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuthStore()
+  const register = useRegisterStore()
 
-  // Restore token from cookie on first navigation (SSR is off, but cookie may exist from a prior session).
+  // Restore token/register from cookie on first navigation (SSR is off, but cookies may exist from a prior session).
   if (!auth.token && import.meta.client) {
     auth.restoreFromCookie()
+  }
+  if (register.selectedId === null && import.meta.client) {
+    register.restoreFromCookie()
   }
 
   if (to.path.startsWith('/login')) {
@@ -20,5 +24,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (to.path.startsWith('/admin') && auth.user.role !== 'ADMIN') {
     return navigateTo('/')
+  }
+
+  // VERKAUF devices must pick a Kassette (own independent shift) before using the till.
+  if (auth.user.role === 'VERKAUF' && !to.path.startsWith('/kassette') && !register.selectedId) {
+    return navigateTo({ path: '/kassette', query: { next: to.fullPath } })
   }
 })
