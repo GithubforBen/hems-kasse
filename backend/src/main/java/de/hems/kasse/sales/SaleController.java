@@ -36,19 +36,26 @@ public class SaleController {
         this.shifts = shifts;
     }
 
-    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty) {}
+    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty, @Min(0) Integer priceCentsOverride) {}
     public record NewSale(@NotNull String method,
                           @Min(0) int givenCents,
                           @NotEmpty List<@Valid NewSaleItem> items,
                           String transactionRef) {}
 
-    public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color) {}
+    public record SaleItemComponentDto(UUID productId, String name, int qty) {
+        static SaleItemComponentDto of(SaleItemComponent c) {
+            return new SaleItemComponentDto(c.getProductId(), c.getName(), c.getQty());
+        }
+    }
+    public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color,
+                              List<SaleItemComponentDto> components) {}
     public record SaleDto(UUID id, Instant ts, String method,
                           int totalCents, int givenCents, int changeCents,
                           String byName, List<SaleItemDto> items, String transactionRef) {
         static SaleDto of(Sale s) {
             var items = s.getItems().stream()
-                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor()))
+                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor(),
+                            it.getComponents().stream().map(SaleItemComponentDto::of).toList()))
                     .toList();
             return new SaleDto(s.getId(), s.getTs(), s.getMethod().name(),
                     s.getTotalCents(), s.getGivenCents(), s.getChangeCents(),
@@ -57,14 +64,17 @@ public class SaleController {
     }
 
     @GetMapping
-    public List<SaleDto> listForCurrentShift(@AuthenticationPrincipal KassePrincipal p) {
-        Shift s = shifts.currentOrOpen(p);
+    public List<SaleDto> listForCurrentShift(@AuthenticationPrincipal KassePrincipal p,
+                                             @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId) {
+        Shift s = shifts.currentOrOpen(p, registerId);
         return sales.findAllByShiftIdOrderByTsDesc(s.getId()).stream().map(SaleDto::of).toList();
     }
 
     @PostMapping
     @Transactional
-    public SaleDto record(@AuthenticationPrincipal KassePrincipal p, @RequestBody @Valid NewSale body) {
+    public SaleDto record(@AuthenticationPrincipal KassePrincipal p,
+                          @RequestHeader(name = "X-Kasse-Register-Id", required = false) UUID registerId,
+                          @RequestBody @Valid NewSale body) {
         PaymentMethod method;
         try {
             method = PaymentMethod.valueOf(body.method().toUpperCase(Locale.ROOT));
@@ -72,22 +82,35 @@ public class SaleController {
             throw new ResponseStatusException(BAD_REQUEST, "Unknown payment method");
         }
 
-        Shift shift = shifts.currentOrOpen(p);
+        Shift shift = shifts.currentOrOpen(p, registerId);
         List<SaleItem> items = new ArrayList<>(body.items().size());
         int total = 0;
         for (NewSaleItem ni : body.items()) {
             Product prod = products.findById(ni.productId())
                     .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST,
                             "Unbekanntes Produkt: " + ni.productId()));
-            int line = prod.getPriceCents() * ni.qty();
+            int priceCents = (prod.isVariable() && ni.priceCentsOverride() != null)
+                    ? ni.priceCentsOverride() : prod.getPriceCents();
+            int line = priceCents * ni.qty();
             total += line;
+
+            List<SaleItemComponent> comps = prod.getComponents().stream()
+                    .map(pc -> SaleItemComponent.builder()
+                            .id(UUID.randomUUID())
+                            .productId(pc.getComponentProduct().getId())
+                            .name(pc.getComponentProduct().getName())
+                            .qty(pc.getQty() * ni.qty())
+                            .build())
+                    .toList();
+
             items.add(SaleItem.builder()
                     .id(UUID.randomUUID())
                     .productId(prod.getId())
                     .name(prod.getName())
-                    .priceCents(prod.getPriceCents())
+                    .priceCents(priceCents)
                     .qty(ni.qty())
                     .color(prod.getColor())
+                    .components(new ArrayList<>(comps))
                     .build());
         }
 

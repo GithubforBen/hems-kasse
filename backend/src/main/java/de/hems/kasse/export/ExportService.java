@@ -30,7 +30,7 @@ public class ExportService {
     /** Per-shift summary table — {@code shifts.csv}. */
     public String shiftsCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse", "Rolle",
+                "Schicht-ID", "Verkäufer:in", "Klasse", "Kassette", "Rolle",
                 "Gestartet", "Abgeschlossen",
                 "Anfangsbestand (€)",
                 "Umsatz Bar (€)", "Umsatz Karte (€)", "Umsatz PayPal (€)", "Umsatz gesamt (€)",
@@ -42,6 +42,7 @@ public class ExportService {
                     s.getId(),
                     s.getUserName(),
                     nullToEmpty(s.getKlasse()),
+                    nullToEmpty(s.getRegisterName()),
                     s.getRole(),
                     dateTime(s.getStartedAt()),
                     dateTime(s.getClosedAt()),

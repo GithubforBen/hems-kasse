@@ -17,13 +17,17 @@ export const useCartStore = defineStore('cart', {
   },
 
   actions: {
-    add(p: ProductDto) {
-      const i = this.items.findIndex(x => x.productId === p.id)
-      if (i >= 0) {
-        this.items[i]!.qty += 1
-      } else {
-        this.items.push({ productId: p.id, name: p.name, priceCents: p.priceCents, color: p.color, qty: 1 })
+    add(p: ProductDto, priceCentsOverride?: number) {
+      const priceCents = (p.variable && priceCentsOverride !== undefined) ? priceCentsOverride : p.priceCents
+      // Variable-price items are never merged (each entry may have a different price)
+      if (!p.variable) {
+        const i = this.items.findIndex(x => x.productId === p.id)
+        if (i >= 0) {
+          this.items[i]!.qty += 1
+          return
+        }
       }
+      this.items.push({ productId: p.id, name: p.name, priceCents, color: p.color, qty: 1, variable: p.variable })
     },
     inc(id: string) {
       const it = this.items.find(x => x.productId === id)

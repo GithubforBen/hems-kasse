@@ -27,7 +27,11 @@ export const useSalesStore = defineStore('sales', {
         body: {
           method: body.method,
           givenCents: body.givenCents,
-          items: body.items.map(it => ({ productId: it.productId, qty: it.qty })),
+          items: body.items.map(it => ({
+            productId: it.productId,
+            qty: it.qty,
+            ...(it.variable ? { priceCentsOverride: it.priceCents } : {}),
+          })),
           transactionRef: body.transactionRef,
         },
       })

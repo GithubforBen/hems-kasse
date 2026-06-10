@@ -1,17 +1,22 @@
 <script setup lang="ts">
 const shift = useShiftStore()
-const filters = reactive({ q: '', klasse: '' })
+const register = useRegisterStore()
+const filters = reactive({ q: '', klasse: '', registerId: '' })
 
 async function refreshHistory() {
   await shift.fetchAll({
     q: filters.q || undefined,
     klasse: filters.klasse || undefined,
+    registerId: filters.registerId || undefined,
   })
 }
 
-onMounted(refreshHistory)
+onMounted(() => {
+  refreshHistory()
+  register.fetch().catch(() => {})
+})
 
-const tab = ref<'catalog' | 'shifts'>('catalog')
+const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('catalog')
 </script>
 
 <template>
@@ -27,6 +32,21 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
           @click="tab = 'catalog'">Kategorien & Produkte</button>
         <button
           class="btn"
+          :class="tab === 'registers' ? '' : 'ghost'"
+          style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
+          @click="tab = 'registers'">Kassetten</button>
+        <button
+          class="btn"
+          :class="tab === 'inventory' ? '' : 'ghost'"
+          style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
+          @click="tab = 'inventory'">Lager</button>
+        <button
+          class="btn"
+          :class="tab === 'stats' ? '' : 'ghost'"
+          style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
+          @click="tab = 'stats'">Statistiken</button>
+        <button
+          class="btn"
           :class="tab === 'shifts' ? '' : 'ghost'"
           style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
           @click="tab = 'shifts'">Schichten · Alle</button>
@@ -34,6 +54,9 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
 
       <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
         <AdminCatalog v-if="tab === 'catalog'" />
+        <AdminRegisters v-else-if="tab === 'registers'" />
+        <AdminInventory v-else-if="tab === 'inventory'" />
+        <AdminStats v-else-if="tab === 'stats'" />
 
         <div v-else class="scroll-y" style="padding:18px 22px 28px;flex:1">
           <div class="card-box">
@@ -55,6 +78,10 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
                 v-model="filters.klasse"
                 placeholder="Klasse, z. B. BG12e"
                 @keydown.enter="refreshHistory" />
+              <select class="input" style="max-width:170px" v-model="filters.registerId" @change="refreshHistory">
+                <option value="">Alle Kassetten</option>
+                <option v-for="r in register.all" :key="r.id" :value="r.id">{{ r.name }}</option>
+              </select>
               <button class="btn" @click="refreshHistory">Filtern</button>
             </div>
 
@@ -64,6 +91,7 @@ const tab = ref<'catalog' | 'shifts'>('catalog')
                 :types="['shifts', 'items', 'products', 'sales']"
                 :filters="{
                   klasse: filters.klasse || undefined,
+                  registerId: filters.registerId || undefined,
                   q: filters.q || undefined,
                 }" />
             </div>

@@ -249,9 +249,4 @@ function printPage() {
   font-family: var(--font-num);
   letter-spacing: -.01em;
 }
-body[data-theme="farm"] .opening-val {
-  color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 0;
-}
 </style>

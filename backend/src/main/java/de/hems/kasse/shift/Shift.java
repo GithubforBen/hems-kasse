@@ -29,6 +29,12 @@ public class Shift {
     @Column(length = 40)
     private String klasse;
 
+    @Column(name = "register_id")
+    private UUID registerId;
+
+    @Column(name = "register_name", length = 80)
+    private String registerName;
+
     @Column(name = "opening_cash_cents", nullable = false)
     private int openingCashCents;
 

@@ -33,10 +33,6 @@
   font-family: var(--font-num);
 }
 .stat .s{ font-size:12px; color:var(--ink-3); margin-top:2px }
-body[data-theme="farm"] .stat{ border-color: var(--line-2) }
-body[data-theme="farm"] .stat .v{
-  color: var(--accent); font-weight:600; letter-spacing:0;
-}
 
 .two-col{ display:grid; grid-template-columns: 1fr 1fr; gap:14px }
 
@@ -46,7 +42,6 @@ body[data-theme="farm"] .stat .v{
   border-radius: var(--r-lg);
   padding:16px 18px;
 }
-body[data-theme="farm"] .card-box{ border-color: var(--line-2) }
 
 .card-box h3{
   margin:0 0 12px;
@@ -60,10 +55,6 @@ body[data-theme="farm"] .card-box{ border-color: var(--line-2) }
   font-variant-numeric:tabular-nums;
   font-family: var(--font-mono);
 }
-body[data-theme="farm"] .card-box h3{
-  text-transform:uppercase; letter-spacing:.06em; font-size:12px;
-  color: var(--accent);
-}
 
 /* ---------- denominations ---------- */
 .denom-row{
@@ -73,7 +64,6 @@ body[data-theme="farm"] .card-box h3{
   border-top:1px dashed var(--line);
 }
 .denom-row:first-of-type{ border-top:0 }
-body[data-theme="farm"] .denom-row{ border-top-color: var(--line-2) }
 
 .denom-row .d{
   font-weight:600;
@@ -115,8 +105,6 @@ body[data-theme="farm"] .denom-row{ border-top-color: var(--line-2) }
   font-variant-numeric:tabular-nums; font-weight:600;
   font-family: var(--font-num);
 }
-body[data-theme="farm"] .summary-list .l{ border-top-color: var(--line-2); font-family: var(--font-mono) }
-body[data-theme="farm"] .summary-list .l.tot .v{ color: var(--accent) }
 
 /* ---------- diff ---------- */
 .diff{
@@ -133,10 +121,6 @@ body[data-theme="farm"] .summary-list .l.tot .v{ color: var(--accent) }
 .diff.bad{ background: var(--bad-soft); border-color:#efc4bf; color: var(--bad) }
 .diff.zero{ background: var(--paper-2); color: var(--ink-2) }
 
-body[data-theme="farm"] .diff{ background:transparent; border-color:var(--line-2) }
-body[data-theme="farm"] .diff.ok{ background:transparent; border-color: var(--ok); color: var(--ok) }
-body[data-theme="farm"] .diff.bad{ background:transparent; border-color: var(--bad); color: var(--bad) }
-body[data-theme="farm"] .diff .l{ font-family: var(--font-mono); text-transform:uppercase; letter-spacing:.06em }
 
 /* ---------- top sellers ---------- */
 .top-list .t-row{
@@ -147,7 +131,6 @@ body[data-theme="farm"] .diff .l{ font-family: var(--font-mono); text-transform:
   font-size:13px;
 }
 .top-list .t-row:first-child{ border-top:0 }
-body[data-theme="farm"] .top-list .t-row{ border-top-color: var(--line-2); font-family: var(--font-mono) }
 
 .top-list .rk{
   color:var(--ink-3); font-weight:700;
@@ -177,12 +160,6 @@ body[data-theme="farm"] .top-list .t-row{ border-top-color: var(--line-2); font-
   background:var(--ink);
   border-radius:99px;
 }
-body[data-theme="farm"] .bar-bg{ background:var(--paper-2); border-radius:1px }
-body[data-theme="farm"] .bar{
-  background: var(--accent);
-  border-radius:1px;
-  box-shadow: 0 0 8px -1px var(--accent);
-}
 
 .report-actions{
   display:flex; gap:10px;
@@ -195,4 +172,3 @@ body[data-theme="farm"] .bar{
   color:var(--ink-3);
   font-size:13.5px;
 }
-body[data-theme="farm"] .report-empty{ font-family:var(--font-mono) }

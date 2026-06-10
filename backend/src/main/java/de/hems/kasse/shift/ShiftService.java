@@ -1,6 +1,9 @@
 package de.hems.kasse.shift;
 
 import de.hems.kasse.auth.KassePrincipal;
+import de.hems.kasse.auth.Role;
+import de.hems.kasse.register.Register;
+import de.hems.kasse.register.RegisterRepository;
 import de.hems.kasse.sales.PaymentMethod;
 import de.hems.kasse.sales.Sale;
 import de.hems.kasse.sales.SaleRepository;
@@ -19,38 +22,62 @@ public class ShiftService {
 
     private final ShiftRepository shifts;
     private final SaleRepository sales;
+    private final RegisterRepository registers;
 
-    public ShiftService(ShiftRepository shifts, SaleRepository sales) {
+    public ShiftService(ShiftRepository shifts, SaleRepository sales, RegisterRepository registers) {
         this.shifts = shifts;
         this.sales = sales;
+        this.registers = registers;
     }
 
-    /** Returns the caller's open shift, opening a new one if none is active. */
+    /**
+     * Returns the caller's open shift for the given Kassette, opening a new one if none is
+     * active. VERKAUF callers must supply a registerId (each register runs its own independent
+     * shift); ADMIN callers never select a register and keep the legacy single-shift behaviour.
+     */
     @Transactional
-    public Shift currentOrOpen(KassePrincipal p) {
-        return shifts.findFirstBySubjectKeyAndClosedAtIsNull(p.subjectKey())
-                .orElseGet(() -> shifts.save(Shift.builder()
-                        .id(UUID.randomUUID())
-                        .subjectKey(p.subjectKey())
-                        .userName(p.name())
-                        .role(p.role().name())
-                        .klasse(p.klasse())
-                        .openingCashCents(5000) // matches prototype default 50,00 €
-                        .startedAt(Instant.now())
-                        .build()));
+    public Shift currentOrOpen(KassePrincipal p, UUID registerId) {
+        if (p.role() == Role.VERKAUF && registerId == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Kassette fehlt");
+        }
+        if (registerId == null) {
+            return shifts.findFirstBySubjectKeyAndClosedAtIsNull(p.subjectKey())
+                    .orElseGet(() -> shifts.save(newShift(p, null)));
+        }
+        Register register = registers.findById(registerId)
+                .filter(Register::isActive)
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Unbekannte Kassette"));
+        return shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(p.subjectKey(), registerId)
+                .orElseGet(() -> shifts.save(newShift(p, register)));
+    }
+
+    private Shift newShift(KassePrincipal p, Register register) {
+        return Shift.builder()
+                .id(UUID.randomUUID())
+                .subjectKey(p.subjectKey())
+                .userName(p.name())
+                .role(p.role().name())
+                .klasse(p.klasse())
+                .registerId(register != null ? register.getId() : null)
+                .registerName(register != null ? register.getName() : null)
+                .openingCashCents(5000) // matches prototype default 50,00 €
+                .startedAt(Instant.now())
+                .build();
     }
 
     @Transactional
-    public Shift setOpeningCash(KassePrincipal p, int openingCashCents, String notes) {
-        Shift s = currentOrOpen(p);
+    public Shift setOpeningCash(KassePrincipal p, UUID registerId, int openingCashCents, String notes) {
+        Shift s = currentOrOpen(p, registerId);
         if (openingCashCents >= 0) s.setOpeningCashCents(openingCashCents);
         if (notes != null) s.setNotes(notes);
         return shifts.save(s);
     }
 
     @Transactional
-    public Shift close(KassePrincipal p, int countedCashCents, String notes) {
-        Shift s = shifts.findFirstBySubjectKeyAndClosedAtIsNull(p.subjectKey())
+    public Shift close(KassePrincipal p, UUID registerId, int countedCashCents, String notes) {
+        Shift s = (registerId == null
+                ? shifts.findFirstBySubjectKeyAndClosedAtIsNull(p.subjectKey())
+                : shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(p.subjectKey(), registerId))
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Keine offene Schicht"));
         List<Sale> shiftSales = sales.findAllByShiftIdOrderByTsDesc(s.getId());
 

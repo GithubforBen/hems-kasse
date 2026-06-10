@@ -18,7 +18,7 @@ public record KassePrincipal(Role role, String name, String klasse, String subje
 
     public static String subjectKey(Role role, String name, String klasse) {
         return switch (role) {
-            case VERKAUF -> "verkauf:" + normalise(klasse) + ":" + normalise(name);
+            case VERKAUF -> "verkauf:" + normalise(klasse);
             case ADMIN -> "admin:" + normalise(name);
         };
     }

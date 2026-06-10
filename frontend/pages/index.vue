@@ -27,10 +27,10 @@ function checkout() {
   payOpen.value = true
 }
 
-function onPaid(sale: { totalCents: number; method: 'BAR' | 'KARTE' }) {
+function onPaid(sale: { totalCents: number; method: string }) {
   cart.clear()
   mobileTab.value = 'grid'
-  toast.show(`Verkauf gebucht · ${formatEUR(sale.totalCents)} ${sale.method === 'BAR' ? 'Bar' : 'Karte'}`)
+  toast.show(`Verkauf gebucht · ${formatEUR(sale.totalCents)} ${sale.method === 'BAR' ? 'Bar' : sale.method === 'KARTE' ? 'Karte' : 'PayPal'}`)
 }
 </script>
 
@@ -100,12 +100,6 @@ function onPaid(sale: { totalCents: number; method: 'BAR' | 'KARTE' }) {
   transition: background .12s;
 }
 .opening-banner:hover { background: #f9ddd9; }
-body[data-theme="farm"] .opening-banner {
-  background: transparent;
-  border-bottom-color: var(--bad);
-  color: var(--bad);
-  font-family: var(--font-mono);
-}
 .opening-banner-ico { color: var(--bad); font-style: normal; }
 .opening-banner-cta { font-weight: 650; color: var(--bad); text-decoration: underline; }
 </style>

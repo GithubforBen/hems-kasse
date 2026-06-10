@@ -20,7 +20,6 @@
   gap:4px;
   min-height:0; overflow:auto;
 }
-body[data-theme="farm"] .admin .side{ border-color: var(--line-2) }
 
 .admin .side h4{
   margin:8px 8px 4px;
@@ -43,21 +42,13 @@ body[data-theme="farm"] .admin .side{ border-color: var(--line-2) }
 }
 .cat-item:hover{ background: var(--paper-2) }
 .cat-item.active{ background: var(--paper-3); border-color: var(--line) }
-body[data-theme="farm"] .cat-item.active{
-  background: transparent;
-  border-color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
-  border-radius: var(--r-xs);
-}
 .cat-item .swatch{ width:13px; height:13px; border-radius: var(--r-xs); flex-shrink:0 }
-body[data-theme="farm"] .cat-item .swatch{ border-radius:1px }
 .cat-item .nm{
   flex:1; font-size:13.5px; font-weight:550;
   background:none; border:0; outline:none; padding:0;
   color: var(--ink);
 }
 .cat-item .nm:focus{ outline:1px solid var(--ink-2); border-radius: var(--r-xs) }
-body[data-theme="farm"] .cat-item .nm{ font-family: var(--font-mono); font-weight:500 }
 
 .cat-item .ct{
   font-size:12px; color:var(--ink-3);
@@ -83,20 +74,15 @@ body[data-theme="farm"] .cat-item .nm{ font-family: var(--font-mono); font-weigh
   display:flex; flex-direction:column;
   overflow:hidden;
 }
-body[data-theme="farm"] .admin .main{ border-color: var(--line-2) }
 
 .admin .main-h{
   padding:14px 16px;
   border-bottom:1px solid var(--line);
   display:flex; align-items:center; gap:10px;
 }
-body[data-theme="farm"] .admin .main-h{ border-bottom-color: var(--line-2) }
 .admin .main-h h3{
   margin:0; font-size:14.5px; font-weight:650;
   font-family: var(--font-head);
-}
-body[data-theme="farm"] .admin .main-h h3{
-  text-transform:uppercase; letter-spacing:.06em; font-size:13px; color:var(--accent);
 }
 .admin .main-h .meta{
   color:var(--ink-3); font-size:12.5px;
@@ -117,7 +103,6 @@ body[data-theme="farm"] .admin .main-h h3{
   border:1px solid transparent;
 }
 .prod-row:hover{ background: var(--paper-2); border-color: var(--line) }
-body[data-theme="farm"] .prod-row:hover{ background: var(--paper-2); border-color: var(--line-2) }
 
 .prod-row .drag{
   color: var(--ink-3);
@@ -139,8 +124,11 @@ body[data-theme="farm"] .prod-row:hover{ background: var(--paper-2); border-colo
   font-variant-numeric:tabular-nums;
   font-family: var(--font-num);
 }
-body[data-theme="farm"] .prod-row .nm-i,
-body[data-theme="farm"] .prod-row .pr-i{ font-family: var(--font-mono) }
+.prod-row .pr-i:disabled{
+  opacity:.5;
+  cursor:default;
+  font-style:italic;
+}
 
 .swatch-pick{ display:flex; gap:5px }
 .swatch-pick .s{
@@ -153,9 +141,6 @@ body[data-theme="farm"] .prod-row .pr-i{ font-family: var(--font-mono) }
   outline:2px solid var(--accent);
   outline-offset:1px;
 }
-body[data-theme="farm"] .swatch-pick .s{
-  border-radius:1px; border-color: var(--line-2);
-}
 
 .prod-row .del{
   color: var(--ink-3);
@@ -165,12 +150,6 @@ body[data-theme="farm"] .swatch-pick .s{
   font-size:13px;
 }
 .prod-row .del:hover{ background: var(--bad-soft); color: var(--bad) }
-body[data-theme="farm"] .prod-row .del{
-  background:transparent;
-  border:1px solid var(--line-2);
-  font-family: var(--font-mono);
-}
-body[data-theme="farm"] .prod-row .del:hover{ background:transparent; border-color:var(--bad); color:var(--bad) }
 
 .add-prod{
   display:flex; gap:8px;
@@ -178,7 +157,6 @@ body[data-theme="farm"] .prod-row .del:hover{ background:transparent; border-col
   border-top:1px solid var(--line);
   background: var(--paper-2);
 }
-body[data-theme="farm"] .add-prod{ border-top-color:var(--line-2) }
 .add-prod .btn.secondary{ flex:1 }
 
 .add-cat{
@@ -187,7 +165,6 @@ body[data-theme="farm"] .add-prod{ border-top-color:var(--line-2) }
   border-top:1px dashed var(--line);
   margin-top:8px;
 }
-body[data-theme="farm"] .add-cat{ border-top-color:var(--line-2) }
 .add-cat input{
   flex:1;
   background: var(--paper-2);
@@ -199,7 +176,6 @@ body[data-theme="farm"] .add-cat{ border-top-color:var(--line-2) }
   color: var(--ink);
 }
 .add-cat input:focus{ border-color: var(--accent); background: var(--paper) }
-body[data-theme="farm"] .add-cat input{ font-family: var(--font-mono) }
 .add-cat .btn{ padding:7px 12px; font-size:13px; border-radius: var(--r-xs) }
 
 /* ---------- toast ---------- */
@@ -213,16 +189,5 @@ body[data-theme="farm"] .add-cat input{ font-family: var(--font-mono) }
   z-index:80;
   box-shadow: 0 10px 30px -10px rgba(0,0,0,.4);
   animation: toast-in .25s ease;
-}
-body[data-theme="farm"] .toast{
-  background: transparent;
-  color: var(--accent);
-  border:1px solid var(--accent);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-size: 11.5px;
-  box-shadow: 0 0 22px -6px var(--accent);
 }
 @keyframes toast-in{ from{ opacity:0; transform: translate(-50%, 8px) } to{ opacity:1 } }

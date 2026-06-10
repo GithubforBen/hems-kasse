@@ -33,9 +33,6 @@ async function submit() {
       klasse: role.value === 'VERKAUF' ? klasse.value.trim() : undefined,
       password: password.value,
     })
-    // After login: pull persisted theme.
-    const pref = usePrefStore()
-    pref.fetch().catch(() => {})
     const next = typeof route.query.next === 'string' ? route.query.next : null
     await router.replace(next && next.startsWith('/') ? next : (auth.user?.role === 'ADMIN' ? '/admin' : '/'))
   } catch (e: any) {

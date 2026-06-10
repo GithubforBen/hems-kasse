@@ -6,12 +6,29 @@ export interface AuthUser {
   role: Role
 }
 
+export interface ComponentDto {
+  productId: string | null
+  name: string
+  qty: number
+}
+
 export interface ProductDto {
   id: string
   name: string
   priceCents: number
   color: string
   sortOrder: number
+  variable: boolean
+  plu: string | null
+  composed: boolean
+  components: ComponentDto[]
+}
+
+export interface RegisterDto {
+  id: string
+  name: string
+  sortOrder: number
+  active: boolean
 }
 
 export interface CategoryDto {
@@ -28,6 +45,7 @@ export interface SaleItemDto {
   priceCents: number
   qty: number
   color: string
+  components: ComponentDto[]
 }
 
 export interface SaleDto {
@@ -47,6 +65,8 @@ export interface ShiftDto {
   userName: string
   klasse: string | null
   role: Role
+  registerId: string | null
+  registerName: string | null
   startedAt: string
   closedAt: string | null
   openingCashCents: number
@@ -77,10 +97,95 @@ export interface ShiftDetailDto {
   }>
 }
 
+export interface InventoryCountLineDto {
+  productId: string | null
+  productName: string
+  countedQty: number
+  expectedQty: number
+  diffQty: number
+}
+
+export interface InventoryCountDto {
+  id: string
+  ts: string
+  byName: string
+  notes: string | null
+  lines: InventoryCountLineDto[]
+}
+
+export interface StockIntakeLineDto {
+  productId: string | null
+  productName: string
+  qty: number
+}
+
+export interface StockIntakeDto {
+  id: string
+  ts: string
+  byName: string
+  notes: string | null
+  lines: StockIntakeLineDto[]
+}
+
+export interface ExpectedStockDto {
+  productId: string
+  name: string
+  expectedQty: number
+  baselineTs: string | null
+}
+
+export interface ProductStatDto {
+  name: string
+  qty: number
+  revenueCents: number
+}
+
+export interface TimeBucketDto {
+  bucket: number
+  qty: number
+  revenueCents: number
+}
+
+export interface DailyPointDto {
+  date: string
+  qty: number
+  revenueCents: number
+  sales: number
+}
+
+export interface ProductHourPointDto {
+  product: string
+  hour: number
+  qty: number
+}
+
+export interface ShortageStatDto {
+  name: string
+  countsWithShortage: number
+  totalShortage: number
+  worstShortage: number
+}
+
+export interface StatsDto {
+  from: string
+  to: string
+  totalRevenueCents: number
+  totalQty: number
+  totalSales: number
+  topByQty: ProductStatDto[]
+  topByRevenue: ProductStatDto[]
+  byHour: TimeBucketDto[]
+  byWeekday: TimeBucketDto[]
+  daily: DailyPointDto[]
+  productHours: ProductHourPointDto[]
+  shortages: ShortageStatDto[]
+}
+
 export interface CartItem {
   productId: string
   name: string
   priceCents: number
   color: string
   qty: number
+  variable?: boolean
 }

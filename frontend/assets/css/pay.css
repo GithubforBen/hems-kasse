@@ -9,7 +9,6 @@
   z-index:50; padding:20px;
   animation: fade .15s ease;
 }
-body[data-theme="farm"] .modal-bg{ background:rgba(0,8,4,.7) }
 @keyframes fade{ from{opacity:0} to{opacity:1} }
 
 .modal{
@@ -23,11 +22,6 @@ body[data-theme="farm"] .modal-bg{ background:rgba(0,8,4,.7) }
 }
 .modal.wide{ width: min(720px, 100%) }
 @keyframes pop{ from{ opacity:0; transform: translateY(8px) scale(.985) } to{ opacity:1; transform:none } }
-body[data-theme="farm"] .modal{
-  border-color: var(--line-2);
-  border-radius: var(--r-sm);
-  box-shadow: 0 0 0 1px rgba(116,240,164,.2), 0 30px 80px -20px rgba(116,240,164,.18);
-}
 
 .modal-h{ padding:20px 22px 6px }
 .modal-h h3{
@@ -35,10 +29,6 @@ body[data-theme="farm"] .modal{
   font-family: var(--font-head);
 }
 .modal-h p{ margin:4px 0 0; color:var(--ink-3); font-size:13px }
-body[data-theme="farm"] .modal-h h3{
-  text-transform:uppercase; letter-spacing:.06em; font-size:14px; color:var(--accent);
-}
-body[data-theme="farm"] .modal-h p{ font-family:var(--font-mono); font-size:12px }
 
 .modal-b{ padding:18px 22px 22px }
 .modal-f{
@@ -47,7 +37,6 @@ body[data-theme="farm"] .modal-h p{ font-family:var(--font-mono); font-size:12px
   display:flex; gap:8px; justify-content:flex-end;
   background: var(--paper-2);
 }
-body[data-theme="farm"] .modal-f{ border-top-color: var(--line-2) }
 
 /* ---------- summary card ---------- */
 .pay-summary{
@@ -71,10 +60,6 @@ body[data-theme="farm"] .modal-f{ border-top-color: var(--line-2) }
   letter-spacing:-.01em;
   font-family: var(--font-num);
 }
-body[data-theme="farm"] .pay-summary{ border-color:var(--line-2) }
-body[data-theme="farm"] .pay-summary .v{
-  color: var(--accent); font-weight:600; letter-spacing:0;
-}
 
 /* ---------- choose stage buttons ---------- */
 .pay-row{
@@ -97,23 +82,6 @@ body[data-theme="farm"] .pay-summary .v{
 .pay-btn .ico{ font-size:24px }
 .pay-cash{ background:#1f7a4d } .pay-cash:hover{ background:#196a42 }
 .pay-card{ background:#2a3d72 } .pay-card:hover{ background:#22336a }
-body[data-theme="farm"] .pay-btn{
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-body[data-theme="farm"] .pay-cash{
-  background: transparent; color: var(--accent);
-  border:1px solid var(--accent);
-}
-body[data-theme="farm"] .pay-cash:hover{ background:rgba(116,240,164,.08) }
-body[data-theme="farm"] .pay-card{
-  background:transparent; color:#8cc7ff;
-  border:1px solid #2a4f7a;
-}
-body[data-theme="farm"] .pay-card:hover{ background:rgba(140,199,255,.08) }
-body[data-theme="farm"] .pay-btn .ico{ filter: grayscale(1) brightness(1.5) }
 
 /* ---------- given input ---------- */
 .given-row{
@@ -143,7 +111,6 @@ body[data-theme="farm"] .pay-btn .ico{ filter: grayscale(1) brightness(1.5) }
   color: var(--ink);
   font-family: var(--font-num);
 }
-body[data-theme="farm"] .given-input{ color:var(--accent); font-weight:600; letter-spacing:0 }
 
 .btn-clear{
   width:46px;
@@ -152,11 +119,6 @@ body[data-theme="farm"] .given-input{ color:var(--accent); font-weight:600; lett
   font-size:19px; font-weight:600;
 }
 .btn-clear:hover{ background:var(--line); color:var(--ink) }
-body[data-theme="farm"] .btn-clear{
-  background:transparent; border:1px solid var(--line-2);
-  border-radius: var(--r-sm);
-}
-body[data-theme="farm"] .btn-clear:hover{ color:var(--accent); border-color:var(--accent) }
 
 /* ---------- money picker ---------- */
 .money-section{ margin-top:14px }
@@ -203,27 +165,6 @@ body[data-theme="farm"] .btn-clear:hover{ color:var(--accent); border-color:var(
 .note-50 { background: linear-gradient(135deg,#f0b487,#c66a2d); color:#3a1808 }
 .note-100{ background: linear-gradient(135deg,#a8c8b1,#4a8c69); color:#0e2a1c }
 
-/* farm: flat dim chips for cash */
-body[data-theme="farm"] .note,
-body[data-theme="farm"] .coin{
-  font-family: var(--font-mono);
-  font-weight:600;
-}
-body[data-theme="farm"] .note{
-  background: var(--paper-2) !important;
-  border:1px solid var(--line-2);
-  border-radius: var(--r-xs);
-  box-shadow:none;
-  color: var(--ink) !important;
-}
-body[data-theme="farm"] .note::before,
-body[data-theme="farm"] .note::after{ display:none }
-body[data-theme="farm"] .note-5  { border-color:#54616b }
-body[data-theme="farm"] .note-10 { border-color:#a25c2c }
-body[data-theme="farm"] .note-20 { border-color:#4178b5 }
-body[data-theme="farm"] .note-50 { border-color:#a8552a }
-body[data-theme="farm"] .note-100{ border-color:#4a8c69 }
-body[data-theme="farm"] .note:hover{ background:var(--paper-3) !important; box-shadow:none }
 
 /* coins */
 .coin{
@@ -277,23 +218,6 @@ body[data-theme="farm"] .note:hover{ background:var(--paper-3) !important; box-s
 }
 .coin-eu1::before, .coin-eu2::before{ display:none }
 
-/* farm: coins become squared keypad tiles */
-body[data-theme="farm"] .coin{
-  width: 54px; height: 54px;
-  border-radius: var(--r-xs);
-  background: var(--paper-2) !important;
-  border:1px solid var(--line-2);
-  color: var(--ink) !important;
-  box-shadow:none;
-  text-shadow:none;
-}
-body[data-theme="farm"] .coin::before{ display:none }
-body[data-theme="farm"] .coin .v{ text-shadow:none }
-body[data-theme="farm"] .coin-cu{ border-color:#7a3f1c }
-body[data-theme="farm"] .coin-au{ border-color:#a07f24 }
-body[data-theme="farm"] .coin-eu1{ border-color:#a07f24 }
-body[data-theme="farm"] .coin-eu2{ border-color:#7e7e7e }
-body[data-theme="farm"] .coin:hover{ background:var(--paper-3) !important; box-shadow:none }
 
 /* ---------- change line ---------- */
 .change-line{
@@ -317,10 +241,6 @@ body[data-theme="farm"] .coin:hover{ background:var(--paper-3) !important; box-s
 .change-line.bad{ background:var(--bad-soft); border-color:#efc4bf }
 .change-line.bad .l, .change-line.bad .v{ color:var(--bad) }
 
-body[data-theme="farm"] .change-line{
-  border-color: var(--ok); background: transparent;
-}
-body[data-theme="farm"] .change-line.bad{ border-color: var(--bad); background:transparent }
 
 /* ---------- card stage ---------- */
 .card-anim{
@@ -352,14 +272,6 @@ body[data-theme="farm"] .change-line.bad{ border-color: var(--bad); background:t
   animation: pulse 1.2s infinite;
 }
 @keyframes pulse{ 0%,100%{ opacity:1 } 50%{ opacity:.35 } }
-body[data-theme="farm"] .card-anim{
-  background: transparent;
-  border:1px solid #2a4f7a;
-  border-radius: var(--r-sm);
-  color: #8cc7ff;
-}
-body[data-theme="farm"] .card-anim .v{ color:#cfe4ff; letter-spacing:0 }
-body[data-theme="farm"] .card-anim .status{ font-family:var(--font-mono); font-size:12px }
 
 /* ---------- receipt ---------- */
 .receipt{
@@ -382,8 +294,6 @@ body[data-theme="farm"] .card-anim .status{ font-family:var(--font-mono); font-s
 .receipt .sep{ border-top:1px dashed var(--line-2); margin:8px 0 }
 .receipt .grand{ font-weight:700; font-size:14px }
 .receipt .tx{ color:var(--ink-3); font-size:11.5px; letter-spacing:.03em }
-body[data-theme="farm"] .receipt{ color:var(--ink) }
-body[data-theme="farm"] .receipt .grand{ color: var(--accent) }
 .tx-ref{ margin-top:10px; font-size:12px; opacity:.85; font-family:var(--font-mono); letter-spacing:.04em }
 
 /* ---------- paypal button (inside card stage) ---------- */
@@ -410,19 +320,11 @@ body[data-theme="farm"] .receipt .grand{ color: var(--accent) }
   font-family: var(--font-sans);
   flex-shrink:0;
 }
-body[data-theme="farm"] .paypal-open-btn{
-  background:transparent; border-color:#009cde;
-  color:#009cde; border-radius: var(--r-sm);
-}
-body[data-theme="farm"] .paypal-open-btn:hover{ background: rgba(0,156,222,.08) }
-body[data-theme="farm"] .paypal-pp{ background:#009cde }
 
 /* ---------- paypal logo text in modal header ---------- */
 .paypal-logo-text{ font-size:17px; font-weight:800; letter-spacing:-.01em }
 .pp-dark{ color:#003087 }
 .pp-light{ color:#009cde }
-body[data-theme="farm"] .pp-dark{ color:#8cc7ff }
-body[data-theme="farm"] .pp-light{ color:#009cde }
 
 /* ---------- paypal stage card ---------- */
 .paypal-card{
@@ -460,13 +362,6 @@ body[data-theme="farm"] .pp-light{ color:#009cde }
   font-family: var(--font-mono);
   word-break:break-all;
 }
-body[data-theme="farm"] .paypal-card{
-  background:transparent;
-  border:1px solid #009cde;
-  border-radius: var(--r-sm);
-  color:#8cc7ff;
-}
-body[data-theme="farm"] .paypal-card .v{ color:#cfe4ff; letter-spacing:0 }
 
 .success-ic{
   width:62px; height:62px;
@@ -475,10 +370,4 @@ body[data-theme="farm"] .paypal-card .v{ color:#cfe4ff; letter-spacing:0 }
   display:grid; place-items:center;
   margin:0 auto 12px;
   font-size:28px; font-weight:700;
-}
-body[data-theme="farm"] .success-ic{
-  background:transparent;
-  border:1px solid var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 18px -4px var(--accent);
 }

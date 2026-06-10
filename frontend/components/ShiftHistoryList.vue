@@ -46,6 +46,7 @@ function diffClass(d: number | null | undefined): string {
           <td v-if="showOperator">
             <span style="font-weight:550">{{ s.userName }}</span>
             <span v-if="s.klasse" style="color:var(--ink-3);font-size:12px;margin-left:6px">{{ s.klasse }}</span>
+            <span v-if="s.registerName" style="color:var(--ink-3);font-size:12px;margin-left:6px">· {{ s.registerName }}</span>
           </td>
           <td class="num">{{ formatEUR(s.totalSalesCents ?? 0) }}</td>
           <td class="num">{{ formatEUR(s.cashSalesCents ?? 0) }}</td>

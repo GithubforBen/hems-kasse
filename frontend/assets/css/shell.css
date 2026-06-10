@@ -12,12 +12,6 @@
     radial-gradient(700px 420px at -8% 108%, rgba(223,220,240,.55), transparent 55%),
     var(--bg);
 }
-body[data-theme="farm"] .login-wrap{
-  background:
-    radial-gradient(800px 360px at 80% -10%, rgba(116,240,164,.10), transparent 60%),
-    radial-gradient(600px 360px at -8% 108%, rgba(140,199,255,.08), transparent 55%),
-    var(--bg);
-}
 .login-card{
   width:min(440px,100%);
   background:var(--paper);
@@ -37,15 +31,8 @@ body[data-theme="farm"] .login-wrap{
   font-weight:700; font-size:16px;
   font-family: var(--font-head);
 }
-body[data-theme="farm"] .brand-mark{
-  background:transparent;
-  color:var(--accent);
-  border:1px solid var(--accent);
-  box-shadow: 0 0 14px -4px rgba(116,240,164,.45), inset 0 0 8px -2px rgba(116,240,164,.22);
-}
 .brand-text .t1{ font-weight:600; font-size:15px; font-family:var(--font-head); letter-spacing:-.005em }
 .brand-text .t2{ color:var(--ink-3); font-size:12px; margin-top:1px; font-family:var(--font-mono); letter-spacing:.04em }
-body[data-theme="farm"] .brand-text .t1{ text-transform:uppercase; letter-spacing:.06em; font-size:13px }
 
 /* ---------- form primitives ---------- */
 .label{
@@ -53,7 +40,6 @@ body[data-theme="farm"] .brand-text .t1{ text-transform:uppercase; letter-spacin
   font-weight:600; margin-bottom:6px; display:block;
   letter-spacing:.04em;
 }
-body[data-theme="farm"] .label{ font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3) }
 
 .input{
   width:100%;
@@ -61,14 +47,12 @@ body[data-theme="farm"] .label{ font-family:var(--font-mono); text-transform:upp
   border:1px solid var(--line-2);
   border-radius: var(--r-md);
   padding:12px 13px;
-  font-size:14.5px;
+  font-size:16px;
   outline:none;
   transition:.15s;
   color:var(--ink);
 }
 .input:focus{ border-color:var(--accent); background:var(--paper) }
-body[data-theme="farm"] .input{ font-family:var(--font-mono) }
-body[data-theme="farm"] .input:focus{ box-shadow: 0 0 0 1px var(--accent), 0 0 14px -6px var(--accent) }
 
 .row{ display:flex; gap:10px }
 
@@ -94,33 +78,6 @@ body[data-theme="farm"] .input:focus{ box-shadow: 0 0 0 1px var(--accent), 0 0 1
 .btn.ok:hover{ filter:brightness(.93) }
 .btn.big{ padding:14px 18px; font-size:15px; border-radius: var(--r-lg); width:100% }
 
-/* farm: techy buttons */
-body[data-theme="farm"] .btn{
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-size: 12.5px;
-  font-weight: 600;
-  background: var(--accent);
-  color: #061a10;
-  border: 1px solid var(--accent);
-}
-body[data-theme="farm"] .btn:hover{ background:#a3f6c1; box-shadow: 0 0 18px -4px var(--accent) }
-body[data-theme="farm"] .btn.secondary{
-  background: transparent;
-  color: var(--ink);
-  border: 1px solid var(--line-2);
-}
-body[data-theme="farm"] .btn.secondary:hover{ border-color: var(--accent); color: var(--accent); background:transparent }
-body[data-theme="farm"] .btn.ghost{ color: var(--ink-2); border:1px solid transparent }
-body[data-theme="farm"] .btn.ghost:hover{ background:transparent; color:var(--accent); border-color:var(--line-2) }
-body[data-theme="farm"] .btn.ok{
-  background: var(--accent); color:#061a10; border-color:var(--accent);
-}
-body[data-theme="farm"] .btn.danger{
-  background:transparent; color:var(--bad); border:1px solid var(--bad);
-}
-
 /* ---------- chips & role pick ---------- */
 .recent-users{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px }
 .chip{
@@ -132,14 +89,6 @@ body[data-theme="farm"] .btn.danger{
   color:var(--ink-2);
 }
 .chip:hover{ background:var(--line); color:var(--ink) }
-body[data-theme="farm"] .chip{
-  background: transparent;
-  border-color: var(--line-2);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  font-size:12px;
-}
-body[data-theme="farm"] .chip:hover{ color:var(--accent); border-color:var(--accent) }
 
 .role-pick{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px }
 .role-pick label{
@@ -156,7 +105,6 @@ body[data-theme="farm"] .chip:hover{ color:var(--accent); border-color:var(--acc
   box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 12%, transparent);
 }
 .role-pick input{ accent-color: var(--accent) }
-body[data-theme="farm"] .role-pick label{ font-family:var(--font-mono); font-size:12.5px }
 
 /* ============================================================
    App chrome
@@ -173,10 +121,6 @@ body[data-theme="farm"] .role-pick label{ font-family:var(--font-mono); font-siz
   padding:10px 14px;
   background:var(--paper);
   border-bottom:1px solid var(--line);
-}
-body[data-theme="farm"] .topbar{
-  background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
-  border-bottom-color: var(--line-2);
 }
 .topbar .brand{ margin:0 }
 .topbar .brand-mark{ width:32px; height:32px; border-radius: var(--r-sm); font-size:14px }
@@ -203,25 +147,6 @@ body[data-theme="farm"] .topbar{
   color:var(--ink);
   box-shadow:0 1px 2px rgba(0,0,0,.05);
 }
-body[data-theme="farm"] .tabs{
-  background:transparent;
-  border:1px solid var(--line-2);
-  border-radius: var(--r-sm);
-  padding:2px;
-  gap:0;
-}
-body[data-theme="farm"] .tab{
-  font-family:var(--font-mono);
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  font-size:11.5px;
-  font-weight:600;
-}
-body[data-theme="farm"] .tab.active{
-  background: var(--accent);
-  color: #061a10;
-  box-shadow: 0 0 12px -4px var(--accent);
-}
 
 /* right side */
 .topbar .right{
@@ -236,61 +161,10 @@ body[data-theme="farm"] .tab.active{
   border-radius:999px;
   padding:3px 12px 3px 3px;
 }
-body[data-theme="farm"] .user-pill{
-  background:transparent;
-  border:1px solid var(--line-2);
-  border-radius: var(--r-sm);
-  padding:2px 10px 2px 2px;
-  font-family:var(--font-mono);
-}
 .avatar{
   width:24px; height:24px; border-radius:50%;
   background:var(--ink); color:var(--paper);
   display:grid; place-items:center;
   font-size:11.5px; font-weight:600;
 }
-body[data-theme="farm"] .avatar{
-  background:transparent;
-  border:1px solid var(--accent);
-  color:var(--accent);
-  border-radius: var(--r-xs);
-}
 .clock{ font-variant-numeric:tabular-nums; font-family:var(--font-mono); font-size:12px }
-body[data-theme="farm"] .clock{ color:var(--accent) }
-
-/* ---------- theme toggle (farm switch) ---------- */
-.theme-toggle{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:5px 9px 5px 7px;
-  border-radius: 999px;
-  background: var(--paper-3);
-  border:1px solid var(--line);
-  color:var(--ink-2);
-  font-size:12px;
-  font-weight:550;
-  cursor:pointer;
-  transition:.15s;
-}
-.theme-toggle:hover{ color:var(--ink) }
-.theme-toggle .dot{
-  width:8px; height:8px; border-radius:50%;
-  background: var(--ink-3);
-}
-body[data-theme="farm"] .theme-toggle{
-  background:transparent;
-  border:1px solid var(--accent);
-  color:var(--accent);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  font-size:11px;
-  text-transform:uppercase;
-  letter-spacing:.1em;
-  padding:4px 8px 4px 8px;
-  white-space: nowrap;
-}
-body[data-theme="farm"] .theme-toggle .dot{
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  animation: farm-blink 1.6s steps(2,end) infinite;
-}
-@keyframes farm-blink{ 50%{ opacity:.35 } }
