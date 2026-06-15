@@ -219,6 +219,7 @@ async function moveToCat(prodId: string, newCatId: string) {
               :title="p.composed ? 'Verkaufstaste: ' + p.components.map(c => `${c.qty}× ${c.name}`).join(' + ') : 'Als Verkaufstaste mehrere Produkte zusammenfassen'">
               {{ p.composed ? '⚙ Verkaufstaste' : 'Komposition…' }}
             </button>
+            <span v-else class="compose-placeholder"></span>
             <select
               class="cat-sel"
               :value="cat.id"
