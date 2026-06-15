@@ -42,10 +42,8 @@ function onKey(e: KeyboardEvent) {
           <span class="price-unit">€</span>
           <input
             class="price-input"
-            type="number"
+            type="text"
             inputmode="decimal"
-            step="0.10"
-            min="0.01"
             placeholder="0,00"
             v-model="rawEur"
             @keydown="onKey"

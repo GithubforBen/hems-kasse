@@ -91,6 +91,7 @@ public class CatalogController {
 
     // ---------- Reads ----------
     @GetMapping("/categories")
+    @Transactional
     public List<CategoryDto> list() {
         return categories.findAllByOrderBySortOrderAsc().stream().map(CategoryDto::of).toList();
     }
@@ -126,7 +127,11 @@ public class CatalogController {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void deleteCategory(@PathVariable UUID id) {
-        if (!categories.existsById(id)) throw new ResponseStatusException(NOT_FOUND);
+        Category c = categories.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+        List<UUID> productIds = c.getProducts().stream().map(Product::getId).toList();
+        if (!productIds.isEmpty()) {
+            components.deleteByProductIds(productIds);
+        }
         categories.deleteById(id);
     }
 
@@ -185,6 +190,7 @@ public class CatalogController {
     // ---------- Komposition (Verkaufstasten) ----------
     @GetMapping("/products/{id}/components")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     public List<ComponentDto> getComponents(@PathVariable UUID id) {
         Product p = products.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
         return p.getComponents().stream()
@@ -242,6 +248,7 @@ public class CatalogController {
 
     @GetMapping("/products/export.csv")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     public ResponseEntity<byte[]> exportCsv() {
         var w = new CsvWriter().row("Kategorie", "Produkt", "PLU", "Preis (€)", "Variabel", "Verkaufstaste", "Bestandteile");
         for (Category c : categories.findAllByOrderBySortOrderAsc()) {

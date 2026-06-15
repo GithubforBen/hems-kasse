@@ -64,7 +64,7 @@ async function remove(id: string) {
         <input
           v-model="newName"
           @keydown.enter="add"
-          placeholder="Neue Kassette, z. B. „Kassette 2"…" />
+          placeholder='Neue Kassette, z. B. „Kassette 2"…' />
         <button class="btn" @click="add">+</button>
       </div>
 
