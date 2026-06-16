@@ -27,7 +27,8 @@ function diffClass(d: number | null | undefined): string {
     <div v-if="shifts.length === 0" class="report-empty">
       {{ emptyText ?? 'Noch keine archivierten Schichten.' }}
     </div>
-    <table v-else class="history-table">
+    <div v-else class="table-scroll">
+    <table class="history-table">
       <thead>
         <tr>
           <th>Abschluss</th>
@@ -63,6 +64,7 @@ function diffClass(d: number | null | undefined): string {
         </tr>
       </tbody>
     </table>
+    </div>
   </div>
 </template>
 

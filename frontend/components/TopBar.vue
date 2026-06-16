@@ -69,7 +69,7 @@ async function changeRegister() {
         <span v-if="auth.user.klasse" style="color:var(--ink-3);font-size:12px">{{ auth.user.klasse }}</span>
         <template v-if="auth.user.role === 'VERKAUF' && register.selected">
           <span style="color:var(--ink-3);font-size:12px">·</span>
-          <button class="btn ghost" @click="changeRegister" title="Kassette wechseln" style="padding:2px 8px;font-size:12px;gap:4px">
+          <button class="btn ghost register-switch-btn" @click="changeRegister" title="Kassette wechseln" style="padding:2px 8px;font-size:12px;gap:4px">
             🗄️ {{ register.selected.name }}
           </button>
         </template>

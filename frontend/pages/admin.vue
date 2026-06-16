@@ -24,7 +24,7 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
     <TopBar />
 
     <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden">
-      <div style="display:flex;gap:8px;padding:14px 22px 0;flex-shrink:0">
+      <div class="admin-tabs-wrap" style="display:flex;gap:8px;padding:14px 22px 0;flex-shrink:0">
         <button
           class="btn"
           :class="tab === 'catalog' ? '' : 'ghost'"
