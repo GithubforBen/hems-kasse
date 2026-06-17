@@ -166,13 +166,42 @@
   /* Category items: full-height touch target */
   .cat-item{ padding:11px 12px }
 
-  /* Product row: hide drag handle + color picker, keep name+price+delete */
+  /* Admin tab bar: scroll horizontally instead of overflowing */
+  .admin-tabs-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-left:14px !important;
+    padding-right:14px !important;
+    padding-top:10px !important;
+    gap:6px !important;
+    scrollbar-width:none;
+  }
+  .admin-tabs-wrap::-webkit-scrollbar{ display:none }
+
+  /* Product row: hide secondary controls on mobile, keep name + price + delete */
   .prod-row{
     grid-template-columns: 1fr 100px 44px;
   }
-  .prod-row .drag{ display:none }
+  /* visible grid items in DOM order with hidden ones removed:
+     nm-i → col1(1fr) | pr-i → col2(100px) | del → col3(44px) */
+  .prod-row .sort-btns{ display:none }
+  .prod-row .drag{ display:none }  /* legacy selector kept for safety */
   .prod-row .swatch-pick{ display:none }
+  .prod-row .variable-toggle{ display:none }
+  .prod-row .plu-i{ display:none }
+  .prod-row .compose-btn{ display:none }
+  .prod-row .compose-placeholder{ display:none }
+  .prod-row .cat-sel{ display:none }
   .prod-row .del{ padding:8px 10px }
+
+  /* TopBar: hide register-switch inside user-pill to prevent topbar overflow */
+  .register-switch-btn{ display:none }
+
+  /* Charts: clip labels that overflow the narrow columns */
+  .vbar-chart{ overflow:hidden }
+
+  /* Shift/lager tables: scroll horizontally when they're wider than the screen */
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch }
 }
 
 /* ---------- slightly wider phones / small tablets ---------- */
