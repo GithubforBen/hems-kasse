@@ -24,7 +24,20 @@ const txRef = ref<string>('')
 const paypalQrDataUrl = ref<string | null>(null)
 
 function generateTxRef(): string {
-  return crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
+  // 8 hex chars. crypto.randomUUID() only exists in secure contexts (HTTPS /
+  // localhost); on a phone reaching the till over a plain-HTTP LAN address it is
+  // undefined and would crash checkout. getRandomValues works in any context,
+  // and Math.random is a last-resort fallback (this ref is not security-critical).
+  const c = typeof crypto !== 'undefined' ? crypto : undefined
+  if (c?.randomUUID) {
+    return c.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
+  }
+  if (c?.getRandomValues) {
+    const buf = new Uint8Array(4)
+    c.getRandomValues(buf)
+    return Array.from(buf, b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+  }
+  return Math.random().toString(16).slice(2, 10).padStart(8, '0').toUpperCase()
 }
 
 const totalCents = computed(() => props.items.reduce((t, x) => t + x.priceCents * x.qty, 0))
