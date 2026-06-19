@@ -44,7 +44,7 @@ async function addProd(catId: string, variable = false) {
   await catalog.addProduct(catId, { name: variable ? 'Divers' : 'Neues Produkt', priceCents: 0, color: c?.color ?? 'peach', variable })
 }
 
-async function patchProd(id: string, body: Partial<{ name: string; priceCents: number; color: string; variable: boolean }>) {
+async function patchProd(id: string, body: Partial<{ name: string; priceCents: number; color: string; variable: boolean; discountable: boolean; minPriceCents: number | null }>) {
   await catalog.patchProduct(id, body)
 }
 
@@ -205,6 +205,27 @@ async function moveToCat(prodId: string, newCatId: string) {
                 @change="patchProd(p.id, { variable: !p.variable })" />
               <span>~</span>
             </label>
+            <label class="variable-toggle discount-toggle" :title="p.discountable ? 'Rabattierbar – klicken zum Sperren' : 'Nicht rabattierbar – klicken zum Freigeben'">
+              <input
+                type="checkbox"
+                :checked="p.discountable"
+                @change="patchProd(p.id, { discountable: !p.discountable })" />
+              <span>%</span>
+            </label>
+            <input
+              class="minprice-i"
+              type="number"
+              step="0.10"
+              min="0"
+              :disabled="!p.discountable"
+              :title="p.discountable ? 'Mindestpreis bei Rabatt (€) – leer = bis 0 €' : 'Artikel ist nicht rabattierbar'"
+              :value="p.minPriceCents != null ? (p.minPriceCents / 100).toFixed(2) : ''"
+              placeholder="Min €"
+              @change="(e) => {
+                const raw = (e.target as HTMLInputElement).value.replace(',', '.')
+                const eur = Number(raw)
+                patchProd(p.id, { minPriceCents: raw === '' || !(eur > 0) ? 0 : Math.round(eur * 100) })
+              }" />
             <input
               class="plu-i"
               :value="p.plu ?? ''"

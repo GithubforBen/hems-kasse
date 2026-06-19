@@ -96,13 +96,32 @@
 
 .prod-row{
   display:grid;
-  grid-template-columns: 24px 1fr 170px 120px 60px 74px 130px 110px 60px;
+  grid-template-columns: 24px 1fr 170px 120px 56px 56px 84px 74px 130px 110px 60px;
   gap:10px; align-items:center;
   padding:8px 10px;
   border-radius: var(--r-sm);
   border:1px solid transparent;
 }
 .prod-row:hover{ background: var(--paper-2); border-color: var(--line) }
+.prod-row .minprice-i{
+  background: var(--paper-2);
+  border:1px solid var(--line-2);
+  border-radius: var(--r-xs);
+  padding:8px 6px;
+  width:100%; outline:none;
+  font-size:12.5px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  font-family: var(--font-num);
+  color: var(--ink);
+}
+.prod-row .minprice-i:focus{ border-color: var(--accent); background: var(--paper) }
+.prod-row .minprice-i:disabled{ opacity:.4; cursor:default }
+.discount-toggle input:checked + span{
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
+}
 
 .prod-row .drag{
   color: var(--ink-3);

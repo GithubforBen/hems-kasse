@@ -9,6 +9,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -47,7 +48,8 @@ class SmokeTest {
 
         mvc.perform(get("/api/categories").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(4))
+                // 4 seeded categories + the "alt" archive category added in V10.
+                .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[0].name").value("Kuchen"));
     }
 
@@ -103,8 +105,13 @@ class SmokeTest {
                 .readTree(cats.getResponse().getContentAsString())
                 .get(0).get("products").get(0).get("id").asText();
 
+        // VERKAUF runs on a Kassette (default register seeded in V5).
+        String register = "00000000-0000-0000-0000-000000000501";
+
         // Open the shift (lazy on first hit)
-        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + token))
+        mvc.perform(get("/api/shifts/current")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Kasse-Register-Id", register))
                 .andExpect(status().isOk());
 
         // Record one BAR sale of 2× 1,50 € = 3,00 €, gave 5,00 €
@@ -113,6 +120,7 @@ class SmokeTest {
                 """.formatted(productId);
         mvc.perform(post("/api/sales")
                         .header("Authorization", "Bearer " + token)
+                        .header("X-Kasse-Register-Id", register)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(saleBody))
                 .andExpect(status().isOk());
@@ -121,6 +129,7 @@ class SmokeTest {
         String closeBody = "{\"countedCashCents\":5300,\"notes\":\"\"}";
         var closed = mvc.perform(post("/api/shifts/current/close")
                         .header("Authorization", "Bearer " + token)
+                        .header("X-Kasse-Register-Id", register)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(closeBody))
                 .andExpect(status().isOk())
@@ -155,13 +164,81 @@ class SmokeTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Klasse;Rolle"), mineCsv);
-        assertTrue(mineCsv.contains(";Timo;BG12e;VERKAUF;"), mineCsv);
+        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Klasse;Kassette;Rolle"), mineCsv);
+        assertTrue(mineCsv.contains(";Timo;BG12e;Kassette 1;VERKAUF;"), mineCsv);
 
         // Admin "all" requires admin role — Verkauf gets 403.
         mvc.perform(get("/api/shifts/export.csv?type=shifts")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void discountFlowRespectsFloorAndNonDiscountable() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String register = "00000000-0000-0000-0000-000000000501";
+
+        // Admin configures the first Kuchen: list 1,50 €, price floor 1,30 €, discountable.
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var cats = om.readTree(mvc.perform(get("/api/categories").header("Authorization", "Bearer " + adminTok))
+                .andReturn().getResponse().getContentAsString());
+        var first = cats.get(0).get("products").get(0);
+        String productId = first.get("id").asText();
+        int list = first.get("priceCents").asInt();
+        mvc.perform(patch("/api/products/" + productId).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"minPriceCents\":130,\"discountable\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.minPriceCents").value(130))
+                .andExpect(jsonPath("$.discountable").value(true));
+
+        // A second product made non-discountable.
+        String lockedId = cats.get(0).get("products").get(1).get("id").asText();
+        mvc.perform(patch("/api/products/" + lockedId).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"discountable\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountable").value(false));
+
+        String tok = token(login("VERKAUF", "Timo", "BG12e", "Passw0rd"));
+
+        // 50 % off 1,50 € would be 0,75 € but the 1,30 € floor caps it.
+        mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"method\":\"BAR\",\"givenCents\":1000,\"items\":[{\"productId\":\"%s\",\"qty\":1,\"discountPercent\":50}]}".formatted(productId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCents").value(130))
+                .andExpect(jsonPath("$.items[0].priceCents").value(130))
+                .andExpect(jsonPath("$.items[0].listPriceCents").value(list))
+                .andExpect(jsonPath("$.items[0].discountPercent").value(50));
+
+        // Even 100 % cannot go below the floor.
+        mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"method\":\"BAR\",\"givenCents\":1000,\"items\":[{\"productId\":\"%s\",\"qty\":1,\"discountPercent\":100}]}".formatted(productId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCents").value(130));
+
+        // Discounting a non-discountable product is rejected.
+        mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"method\":\"BAR\",\"givenCents\":1000,\"items\":[{\"productId\":\"%s\",\"qty\":1,\"discountPercent\":10}]}".formatted(lockedId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    private String login(String role, String name, String klasse, String password) throws Exception {
+        String body = (klasse == null)
+                ? "{\"role\":\"%s\",\"name\":\"%s\",\"password\":\"%s\"}".formatted(role, name, password)
+                : "{\"role\":\"%s\",\"name\":\"%s\",\"klasse\":\"%s\",\"password\":\"%s\"}".formatted(role, name, klasse, password);
+        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
+    private static String token(String loginJson) throws Exception {
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(loginJson).get("token").asText();
     }
 
     private static boolean assertTrue(boolean cond, String msg) {

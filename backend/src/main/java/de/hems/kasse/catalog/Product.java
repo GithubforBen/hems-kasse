@@ -37,6 +37,17 @@ public class Product {
     @Column(nullable = false)
     private boolean variable;
 
+    /** Whether a cashier may apply a percentage discount to this article. */
+    @Column(nullable = false)
+    private boolean discountable;
+
+    /**
+     * Optional price floor in cents. When set, no discount may push the unit price below it
+     * (e.g. Red Bull stays at ≥ 1,10 €). {@code null} means no floor — a 100 % discount reaches 0.
+     */
+    @Column(name = "min_price_cents")
+    private Integer minPriceCents;
+
     /** Admin-assigned, free-text product code. Optional but unique when set. */
     @Column(length = 40)
     private String plu;

@@ -7,6 +7,7 @@ import de.hems.kasse.shift.Shift;
 import de.hems.kasse.shift.ShiftService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +37,8 @@ public class SaleController {
         this.shifts = shifts;
     }
 
-    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty, @Min(0) Integer priceCentsOverride) {}
+    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty, @Min(0) Integer priceCentsOverride,
+                              @Min(0) @Max(100) Integer discountPercent) {}
     public record NewSale(@NotNull String method,
                           @Min(0) int givenCents,
                           @NotEmpty List<@Valid NewSaleItem> items,
@@ -47,14 +49,15 @@ public class SaleController {
             return new SaleItemComponentDto(c.getProductId(), c.getName(), c.getQty());
         }
     }
-    public record SaleItemDto(UUID productId, String name, int priceCents, int qty, String color,
-                              List<SaleItemComponentDto> components) {}
+    public record SaleItemDto(UUID productId, String name, int priceCents, int listPriceCents, int discountPercent,
+                              int qty, String color, List<SaleItemComponentDto> components) {}
     public record SaleDto(UUID id, Instant ts, String method,
                           int totalCents, int givenCents, int changeCents,
                           String byName, List<SaleItemDto> items, String transactionRef) {
         static SaleDto of(Sale s) {
             var items = s.getItems().stream()
-                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(), it.getQty(), it.getColor(),
+                    .map(it -> new SaleItemDto(it.getProductId(), it.getName(), it.getPriceCents(),
+                            it.getListPriceCents(), it.getDiscountPercent(), it.getQty(), it.getColor(),
                             it.getComponents().stream().map(SaleItemComponentDto::of).toList()))
                     .toList();
             return new SaleDto(s.getId(), s.getTs(), s.getMethod().name(),
@@ -89,8 +92,13 @@ public class SaleController {
             Product prod = products.findById(ni.productId())
                     .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST,
                             "Unbekanntes Produkt: " + ni.productId()));
-            int priceCents = (prod.isVariable() && ni.priceCentsOverride() != null)
+            int listPrice = (prod.isVariable() && ni.priceCentsOverride() != null)
                     ? ni.priceCentsOverride() : prod.getPriceCents();
+            int discountPercent = ni.discountPercent() == null ? 0 : ni.discountPercent();
+            if (discountPercent > 0 && !prod.isDiscountable()) {
+                throw new ResponseStatusException(BAD_REQUEST, "„" + prod.getName() + "“ ist nicht rabattierbar");
+            }
+            int priceCents = applyDiscount(listPrice, discountPercent, prod.getMinPriceCents());
             int line = priceCents * ni.qty();
             total += line;
 
@@ -108,6 +116,8 @@ public class SaleController {
                     .productId(prod.getId())
                     .name(prod.getName())
                     .priceCents(priceCents)
+                    .listPriceCents(listPrice)
+                    .discountPercent(discountPercent)
                     .qty(ni.qty())
                     .color(prod.getColor())
                     .components(new ArrayList<>(comps))
@@ -139,6 +149,19 @@ public class SaleController {
                 .items(items)
                 .build();
         return SaleDto.of(sales.save(sale));
+    }
+
+    /**
+     * Applies a percentage discount to a unit price, never dropping below the article's price floor.
+     * Authoritative server-side computation — the client preview must match but is not trusted.
+     */
+    static int applyDiscount(int listPriceCents, int discountPercent, Integer minPriceCents) {
+        if (discountPercent <= 0) return listPriceCents;
+        int discounted = (int) Math.round(listPriceCents * (100 - discountPercent) / 100.0);
+        if (minPriceCents != null && discounted < minPriceCents) {
+            return Math.min(listPriceCents, minPriceCents);
+        }
+        return Math.max(0, discounted);
     }
 
     /** Uses the client-supplied ref (max 12 alphanumeric chars) or derives one from the sale UUID. */

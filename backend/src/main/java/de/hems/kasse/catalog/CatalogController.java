@@ -49,12 +49,14 @@ public class CatalogController {
         }
     }
     public record ProductDto(UUID id, String name, int priceCents, String color, int sortOrder, boolean variable,
+                             boolean discountable, Integer minPriceCents,
                              String plu, boolean composed, List<ComponentDto> components) {
         static ProductDto of(Product p) {
             var comps = p.getComponents().stream()
                     .sorted(Comparator.comparing(pc -> pc.getComponentProduct().getName()))
                     .map(ComponentDto::of).toList();
             return new ProductDto(p.getId(), p.getName(), p.getPriceCents(), p.getColor(), p.getSortOrder(), p.isVariable(),
+                    p.isDiscountable(), p.getMinPriceCents(),
                     p.getPlu(), p.isComposed(), comps);
         }
     }
@@ -77,6 +79,8 @@ public class CatalogController {
                              @Min(0) int priceCents,
                              @NotBlank @Size(max = 20) String color,
                              boolean variable,
+                             Boolean discountable,
+                             @Min(0) Integer minPriceCents,
                              @Size(max = 40) String plu) {}
     public record PatchProduct(@Size(max = 120) String name,
                                Integer priceCents,
@@ -84,6 +88,8 @@ public class CatalogController {
                                Integer sortOrder,
                                UUID categoryId,
                                Boolean variable,
+                               Boolean discountable,
+                               Integer minPriceCents,
                                @Size(max = 40) String plu) {}
 
     public record NewComponent(@NotNull UUID componentProductId, @Min(1) int qty) {}
@@ -150,6 +156,8 @@ public class CatalogController {
                 .color(body.color())
                 .sortOrder(nextOrder)
                 .variable(body.variable())
+                .discountable(body.discountable() == null || body.discountable())
+                .minPriceCents(normaliseMinPrice(body.minPriceCents()))
                 .plu(normalisePlu(body.plu()))
                 .build();
         return ProductDto.of(saveProduct(p));
@@ -170,6 +178,9 @@ public class CatalogController {
             p.setCategory(newCat);
         }
         if (body.variable() != null) p.setVariable(body.variable());
+        if (body.discountable() != null) p.setDiscountable(body.discountable());
+        // minPriceCents: null = leave unchanged, <= 0 = clear the floor, otherwise set it.
+        if (body.minPriceCents() != null) p.setMinPriceCents(normaliseMinPrice(body.minPriceCents()));
         if (body.plu() != null) p.setPlu(normalisePlu(body.plu()));
         return ProductDto.of(saveProduct(p));
     }
@@ -250,7 +261,8 @@ public class CatalogController {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<byte[]> exportCsv() {
-        var w = new CsvWriter().row("Kategorie", "Produkt", "PLU", "Preis (€)", "Variabel", "Verkaufstaste", "Bestandteile");
+        var w = new CsvWriter().row("Kategorie", "Produkt", "PLU", "Preis (€)", "Variabel",
+                "Rabattierbar", "Mindestpreis (€)", "Verkaufstaste", "Bestandteile");
         for (Category c : categories.findAllByOrderBySortOrderAsc()) {
             var sorted = c.getProducts().stream().sorted(Comparator.comparingInt(Product::getSortOrder)).toList();
             for (Product p : sorted) {
@@ -259,7 +271,10 @@ public class CatalogController {
                         .map(pc -> pc.getQty() + "× " + pc.getComponentProduct().getName())
                         .reduce((a, b) -> a + ", " + b).orElse("");
                 w.row(c.getName(), p.getName(), p.getPlu() == null ? "" : p.getPlu(), euro(p.getPriceCents()),
-                        p.isVariable() ? "Ja" : "Nein", p.isComposed() ? "Ja" : "Nein", comps);
+                        p.isVariable() ? "Ja" : "Nein",
+                        p.isDiscountable() ? "Ja" : "Nein",
+                        p.getMinPriceCents() == null ? "" : euro(p.getMinPriceCents()),
+                        p.isComposed() ? "Ja" : "Nein", comps);
             }
         }
         return csv(w.toCsv(), "katalog-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
@@ -278,6 +293,11 @@ public class CatalogController {
         if (plu == null) return null;
         String trimmed = plu.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /** A floor of 0 (or negative) means "no floor", stored as null. */
+    private static Integer normaliseMinPrice(Integer minPriceCents) {
+        return (minPriceCents == null || minPriceCents <= 0) ? null : minPriceCents;
     }
 
     private Product saveProduct(Product p) {

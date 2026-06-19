@@ -24,8 +24,17 @@ public class SaleItem {
     @Column(nullable = false, length = 120)
     private String name;
 
+    /** Effective unit price actually charged (after any discount). */
     @Column(name = "price_cents", nullable = false)
     private int priceCents;
+
+    /** List unit price before the discount; equals priceCents when no discount was applied. */
+    @Column(name = "list_price_cents", nullable = false)
+    private int listPriceCents;
+
+    /** Applied discount in percent (0–100); 0 means no discount. */
+    @Column(name = "discount_percent", nullable = false)
+    private int discountPercent;
 
     @Column(nullable = false)
     private int qty;
