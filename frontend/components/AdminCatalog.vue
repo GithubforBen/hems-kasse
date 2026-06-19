@@ -99,7 +99,7 @@ async function moveToCat(prodId: string, newCatId: string) {
 </script>
 
 <template>
-  <div class="admin">
+  <div class="admin admin-catalog">
     <div class="side">
       <h4>Kategorien</h4>
       <div

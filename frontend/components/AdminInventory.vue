@@ -117,7 +117,7 @@ function diffClass(d: number): string {
 
 <template>
   <div class="scroll-y" style="padding:18px 22px 28px;flex:1">
-    <div style="display:flex;gap:8px;margin-bottom:16px">
+    <div class="lager-modes" style="display:flex;gap:8px;margin-bottom:16px">
       <button class="btn" :class="mode === 'count' ? '' : 'ghost'" style="padding:7px 14px;font-size:13px" @click="mode = 'count'">Inventur durchführen</button>
       <button class="btn" :class="mode === 'intake' ? '' : 'ghost'" style="padding:7px 14px;font-size:13px" @click="mode = 'intake'">Wareneingang erfassen</button>
       <button class="btn" :class="mode === 'history' ? '' : 'ghost'" style="padding:7px 14px;font-size:13px" @click="mode = 'history'">Verlauf</button>

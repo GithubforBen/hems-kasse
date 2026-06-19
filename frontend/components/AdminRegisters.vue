@@ -35,7 +35,7 @@ async function remove(id: string) {
 </script>
 
 <template>
-  <div class="admin">
+  <div class="admin admin-registers">
     <div class="side" style="grid-column:1 / -1">
       <h4>Kassetten</h4>
       <p style="font-size:12.5px;color:var(--ink-3);margin:0 8px 8px">

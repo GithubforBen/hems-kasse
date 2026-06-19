@@ -159,10 +159,12 @@
     overflow:auto;
   }
   .admin .side{
-    max-height:200px;
     border-radius: var(--r-lg);
     overflow-y:auto;
   }
+  /* Catalog only: cap the category rail so the product list stays visible.
+     Registers reuse .side as their whole content, so they must NOT be capped. */
+  .admin-catalog .side{ max-height:200px }
   /* Category items: full-height touch target */
   .cat-item{ padding:11px 12px }
 
@@ -178,22 +180,42 @@
   }
   .admin-tabs-wrap::-webkit-scrollbar{ display:none }
 
-  /* Product row: hide secondary controls on mobile, keep name + price + delete */
+  /* Product row → editable card: flat DOM, so use flex-wrap with forced
+     line-breaks instead of a grid (shared grid tracks can't fit mixed rows).
+     Keep every control reachable so products are fully editable on mobile. */
   .prod-row{
-    grid-template-columns: 1fr 100px 44px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    padding:12px;
+    margin-bottom:10px;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    border-radius: var(--r-sm);
   }
-  /* visible grid items in DOM order with hidden ones removed:
-     nm-i → col1(1fr) | pr-i → col2(100px) | del → col3(44px) */
-  .prod-row .sort-btns{ display:none }
   .prod-row .drag{ display:none }  /* legacy selector kept for safety */
-  .prod-row .swatch-pick{ display:none }
-  .prod-row .variable-toggle{ display:none }
-  .prod-row .minprice-i{ display:none }
-  .prod-row .plu-i{ display:none }
-  .prod-row .compose-btn{ display:none }
   .prod-row .compose-placeholder{ display:none }
-  .prod-row .cat-sel{ display:none }
-  .prod-row .del{ padding:8px 10px }
+
+  /* Line 1: sort arrows · name (grows) · delete */
+  .prod-row .sort-btns{ order:1; flex:0 0 auto }
+  .prod-row .nm-i{ order:2; flex:1 1 auto; min-width:0; font-size:15px }
+  .prod-row .del{ order:3; flex:0 0 auto; padding:8px 12px }
+
+  /* Line 2: full-width colour picker (flex-basis:100% forces the break) */
+  .prod-row .swatch-pick{ order:4; flex:1 0 100%; display:flex; flex-wrap:wrap; gap:6px }
+  .prod-row .swatch-pick .s{ width:26px; height:26px }
+
+  /* Line 3: price · variable · discount · min-price */
+  .prod-row .pr-i{ order:5; flex:1 1 90px; width:auto; min-width:0 }
+  .prod-row .variable-toggle{ order:6; flex:0 0 auto; display:inline-flex }
+  .prod-row .discount-toggle{ order:7 }
+  .prod-row .minprice-i{ order:8; flex:1 1 80px; width:auto; min-width:0; display:block }
+
+  /* Line 4: PLU · composition · category (wrap naturally) */
+  .prod-row .plu-i{ order:9; display:block; flex:0 0 auto }
+  .prod-row .compose-btn{ order:10; display:inline-block; flex:1 1 auto }
+  .prod-row .cat-sel{ order:11; display:block; flex:1 1 auto; max-width:none }
 
   /* TopBar: hide register-switch inside user-pill to prevent topbar overflow */
   .register-switch-btn{ display:none }
@@ -203,6 +225,10 @@
 
   /* Shift/lager tables: scroll horizontally when they're wider than the screen */
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+  .card-box .history-table{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch }
+
+  /* Inventory mode switch: let the segment buttons wrap instead of overflowing */
+  .lager-modes{ flex-wrap:wrap }
 }
 
 /* ---------- slightly wider phones / small tablets ---------- */
