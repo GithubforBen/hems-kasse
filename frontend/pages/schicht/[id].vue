@@ -44,6 +44,22 @@ const productStats = computed(() => {
 })
 const productMaxQty = computed(() => productStats.value.rows[0]?.qty ?? 1)
 
+/** Per-cashier breakdown — same shift can be shared by several people of a class. */
+const byCashier = computed(() => {
+  if (!data.value) return []
+  const m: Record<string, { bons: number; sum: number; items: number }> = {}
+  for (const s of data.value.sales) {
+    const who = s.byName?.trim() || 'Unbekannt'
+    const e = m[who] ??= { bons: 0, sum: 0, items: 0 }
+    e.bons += 1
+    e.sum += s.totalCents
+    e.items += s.items.reduce((q, i) => q + i.qty, 0)
+  }
+  return Object.entries(m)
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.sum - a.sum || b.bons - a.bons || a.name.localeCompare(b.name))
+})
+
 const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
 </script>
 
@@ -135,6 +151,26 @@ const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
                 <span class="qy">{{ s.items.reduce((q, i) => q + i.qty, 0) }} Art.</span>
                 <span class="sm">{{ s.byName }}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-box" style="margin-top:14px" v-if="byCashier.length > 0">
+          <h3>
+            <span>Pro Verkäufer:in</span>
+            <span class="meta">{{ byCashier.length }} Person{{ byCashier.length === 1 ? '' : 'en' }} · gestartet von {{ data.shift.userName }}</span>
+          </h3>
+          <div class="top-list">
+            <div v-for="(c, i) in byCashier" :key="c.name" class="t-row">
+              <span class="rk">{{ i + 1 }}</span>
+              <div>
+                <div style="font-weight:550">{{ c.name }}</div>
+                <div style="color:var(--ink-3);font-size:11.5px;margin-top:2px">
+                  {{ c.bons }} Bons · {{ c.items }} Artikel
+                </div>
+              </div>
+              <span class="qy">×{{ c.bons }}</span>
+              <span class="sm">{{ formatEUR(c.sum) }}</span>
             </div>
           </div>
         </div>

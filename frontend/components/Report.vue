@@ -49,6 +49,22 @@ const top = computed(() => {
 })
 const topMaxQty = computed(() => top.value[0]?.[1].qty || 1)
 
+// Per-cashier breakdown — several people of the same class share one shift, so the
+// closeout shows who booked how many Bons / how much revenue (data from each sale's byName).
+const byCashier = computed(() => {
+  const m: Record<string, { bons: number; sum: number; items: number }> = {}
+  for (const s of sales.sales) {
+    const who = s.byName?.trim() || 'Unbekannt'
+    const e = m[who] ??= { bons: 0, sum: 0, items: 0 }
+    e.bons += 1
+    e.sum += s.totalCents
+    e.items += s.items.reduce((q, i) => q + i.qty, 0)
+  }
+  return Object.entries(m)
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.sum - a.sum || b.bons - a.bons || a.name.localeCompare(b.name))
+})
+
 const toast = useToastStore()
 async function closeShift() {
   const totalSales = sales.totalCents
@@ -197,6 +213,26 @@ function printPage() {
             <div class="report-actions">
               <button class="btn secondary" @click="printPage">Drucken</button>
               <button class="btn danger" @click="closeShift">Schicht abschließen</button>
+            </div>
+          </div>
+
+          <div class="card-box" style="margin-bottom:14px" v-if="byCashier.length > 0">
+            <h3>
+              <span>Pro Verkäufer:in</span>
+              <span class="meta">gestartet von {{ shift.current?.userName ?? '–' }} · {{ startedAt }} Uhr</span>
+            </h3>
+            <div class="top-list">
+              <div v-for="(c, i) in byCashier" :key="c.name" class="t-row">
+                <span class="rk">{{ i + 1 }}</span>
+                <div>
+                  <div style="font-weight:550">{{ c.name }}</div>
+                  <div style="color:var(--ink-3);font-size:11.5px;margin-top:2px">
+                    {{ c.bons }} Bons · {{ c.items }} Artikel
+                  </div>
+                </div>
+                <span class="qy">×{{ c.bons }}</span>
+                <span class="sm">{{ formatEUR(c.sum) }}</span>
+              </div>
             </div>
           </div>
 
