@@ -188,6 +188,7 @@
   .prod-row .drag{ display:none }  /* legacy selector kept for safety */
   .prod-row .swatch-pick{ display:none }
   .prod-row .variable-toggle{ display:none }
+  .prod-row .minprice-i{ display:none }
   .prod-row .plu-i{ display:none }
   .prod-row .compose-btn{ display:none }
   .prod-row .compose-placeholder{ display:none }

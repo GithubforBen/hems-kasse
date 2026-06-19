@@ -30,7 +30,9 @@ export const useSalesStore = defineStore('sales', {
           items: body.items.map(it => ({
             productId: it.productId,
             qty: it.qty,
-            ...(it.variable ? { priceCentsOverride: it.priceCents } : {}),
+            // Variable items send their entered base price; the server applies any discount itself.
+            ...(it.variable ? { priceCentsOverride: it.listPriceCents } : {}),
+            ...(it.discountPercent ? { discountPercent: it.discountPercent } : {}),
           })),
           transactionRef: body.transactionRef,
         },

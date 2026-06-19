@@ -19,6 +19,9 @@ export interface ProductDto {
   color: string
   sortOrder: number
   variable: boolean
+  discountable: boolean
+  /** Price floor in cents; a discount can never go below it. null = no floor. */
+  minPriceCents: number | null
   plu: string | null
   composed: boolean
   components: ComponentDto[]
@@ -43,6 +46,8 @@ export interface SaleItemDto {
   productId: string | null
   name: string
   priceCents: number
+  listPriceCents: number
+  discountPercent: number
   qty: number
   color: string
   components: ComponentDto[]
@@ -182,10 +187,19 @@ export interface StatsDto {
 }
 
 export interface CartItem {
+  /** Unique per cart line — a product may appear multiple times (e.g. different discounts). */
+  lineId: string
   productId: string
   name: string
+  /** Effective unit price after discount. */
   priceCents: number
+  /** Base unit price before discount. */
+  listPriceCents: number
   color: string
   qty: number
   variable?: boolean
+  discountable: boolean
+  minPriceCents: number | null
+  /** Applied discount in percent (0 = none). */
+  discountPercent: number
 }

@@ -378,8 +378,11 @@ const givenDisplay = computed(() => (givenCents.value / 100).toFixed(2).replace(
               <div class="t1">SCHULKASSE · KUCHENVERKAUF</div>
               <div class="t2">{{ new Date(finished.ts).toLocaleString('de-DE') }}</div>
             </div>
-            <div v-for="it in finished.items" :key="it.name" class="r">
-              <span>{{ it.qty }}× {{ it.name }}</span>
+            <div v-for="(it, idx) in finished.items" :key="idx" class="r">
+              <span>
+                {{ it.qty }}× {{ it.name }}
+                <span v-if="it.discountPercent > 0" style="opacity:.6;font-size:.85em">(−{{ it.discountPercent }}%)</span>
+              </span>
               <span>{{ formatEUR(it.priceCents * it.qty) }}</span>
             </div>
             <div class="sep"></div>
