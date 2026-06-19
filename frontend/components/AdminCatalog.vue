@@ -96,6 +96,27 @@ async function moveToCat(prodId: string, newCatId: string) {
   if (!newCatId) return
   await catalog.patchProduct(prodId, { categoryId: newCatId })
 }
+
+async function moveCategory(catId: string, direction: 'up' | 'down') {
+  const cats = catalog.categories
+  const idx = cats.findIndex(c => c.id === catId)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (swapIdx < 0 || swapIdx >= cats.length) return
+
+  const a = cats[idx]!
+  const b = cats[swapIdx]!
+  const aOrder = a.sortOrder
+  const bOrder = b.sortOrder
+
+  // Swap sortOrders; use distinct values if they happen to be equal
+  const newA = bOrder !== aOrder ? bOrder : direction === 'up' ? aOrder - 1 : aOrder + 1
+  const newB = bOrder !== aOrder ? aOrder : direction === 'up' ? bOrder + 1 : bOrder - 1
+
+  await Promise.all([
+    catalog.patchCategory(a.id, { sortOrder: newA }),
+    catalog.patchCategory(b.id, { sortOrder: newB }),
+  ])
+}
 </script>
 
 <template>
@@ -103,11 +124,23 @@ async function moveToCat(prodId: string, newCatId: string) {
     <div class="side">
       <h4>Kategorien</h4>
       <div
-        v-for="c in catalog.categories"
+        v-for="(c, idx) in catalog.categories"
         :key="c.id"
         class="cat-item"
         :class="{ active: activeId === c.id }"
         @click="activeId = c.id">
+        <div class="sort-btns" @click.stop>
+          <button
+            class="sort-btn"
+            :disabled="idx === 0"
+            @click="moveCategory(c.id, 'up')"
+            title="Nach oben">▲</button>
+          <button
+            class="sort-btn"
+            :disabled="idx === catalog.categories.length - 1"
+            @click="moveCategory(c.id, 'down')"
+            title="Nach unten">▼</button>
+        </div>
         <span class="swatch" :class="swatchCls(c.color)"></span>
         <input
           class="nm"
