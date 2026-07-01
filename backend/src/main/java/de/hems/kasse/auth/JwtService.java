@@ -17,6 +17,12 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    /** The placeholder shipped in .env.example — fine for local dev, fatal in production. */
+    private static final String EXAMPLE_SECRET =
+            "ZGV2LW9ubHktc2VjcmV0LXBsZWFzZS1jaGFuZ2UtbWUtMzItYnl0ZXMtbWluaW11bQ==";
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtService.class);
+
     private final SecretKey key;
     private final Duration ttl;
 
@@ -24,6 +30,11 @@ public class JwtService {
         String raw = props.getJwt().getSecret();
         if (raw == null || raw.isBlank()) {
             throw new IllegalStateException("KASSE_JWT_SECRET is not set");
+        }
+        if (EXAMPLE_SECRET.equals(raw)) {
+            log.warn("KASSE_JWT_SECRET is still the .env.example placeholder — anyone who has seen "
+                    + "the repository can forge admin tokens. Generate a real secret before going live: "
+                    + "openssl rand -base64 48");
         }
         // Accept either base64 or plain text — keep at least 32 bytes for HS256.
         byte[] bytes;

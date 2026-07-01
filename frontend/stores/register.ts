@@ -22,7 +22,11 @@ export const useRegisterStore = defineStore('register', {
 
     select(id: string | null) {
       this.selectedId = id
-      const c = useCookie<string | null>(REGISTER_COOKIE, { sameSite: 'lax', maxAge: 60 * 60 * 24 * 30 })
+      const c = useCookie<string | null>(REGISTER_COOKIE, {
+        sameSite: 'lax',
+        secure: import.meta.client && location.protocol === 'https:',
+        maxAge: 60 * 60 * 24 * 30,
+      })
       c.value = id
     },
 

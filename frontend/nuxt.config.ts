@@ -36,6 +36,18 @@ export default defineNuxtConfig({
     '~/assets/css/mobile.css',
   ],
 
+  // The backend already sets these on API responses; mirror them on the app shell
+  // so the till UI can't be framed (clickjacking) or MIME-sniffed.
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'no-referrer',
+      },
+    },
+  },
+
   runtimeConfig: {
     public: {
       // Override at runtime via NUXT_PUBLIC_API_BASE

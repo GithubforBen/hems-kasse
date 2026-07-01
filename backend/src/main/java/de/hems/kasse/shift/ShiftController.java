@@ -6,7 +6,9 @@ import de.hems.kasse.export.ExportType;
 import de.hems.kasse.sales.Sale;
 import de.hems.kasse.sales.SaleRepository;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -70,8 +72,8 @@ public class ShiftController {
 
     public record ShiftDetailDto(ShiftDto shift, List<SaleLine> sales) {}
 
-    public record PatchShift(@Min(0) Integer openingCashCents, String notes) {}
-    public record CloseShift(@Min(0) int countedCashCents, String notes) {}
+    public record PatchShift(@Min(0) Integer openingCashCents, @Size(max = 2000) String notes) {}
+    public record CloseShift(@Min(0) @Max(99_999_999) int countedCashCents, @Size(max = 2000) String notes) {}
 
     @GetMapping("/current")
     public ShiftDto current(@AuthenticationPrincipal KassePrincipal p,

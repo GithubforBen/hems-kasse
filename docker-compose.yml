@@ -17,7 +17,9 @@ services:
     volumes:
       - kasse-pgdata:/var/lib/postgresql/data
     ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      # Loopback only — the backend reaches the DB over the compose network; exposing
+      # Postgres on all interfaces would offer the default credentials to the whole LAN.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kasse} -d ${POSTGRES_DB:-kasse}"]
       interval: 5s
