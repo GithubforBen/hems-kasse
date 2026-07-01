@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -37,12 +38,16 @@ public class SaleController {
         this.shifts = shifts;
     }
 
-    public record NewSaleItem(@NotNull UUID productId, @Min(1) int qty, @Min(0) Integer priceCentsOverride,
+    /** Matches PaymentController.AMOUNT_MAX_CENTS — nothing at a school cake sale costs more. */
+    static final int MAX_TOTAL_CENTS = 99_999_999;
+
+    public record NewSaleItem(@NotNull UUID productId, @Min(1) @Max(9_999) int qty,
+                              @Min(0) @Max(MAX_TOTAL_CENTS) Integer priceCentsOverride,
                               @Min(0) @Max(100) Integer discountPercent) {}
     public record NewSale(@NotNull String method,
-                          @Min(0) int givenCents,
+                          @Min(0) @Max(MAX_TOTAL_CENTS) int givenCents,
                           @NotEmpty List<@Valid NewSaleItem> items,
-                          String transactionRef) {}
+                          @Size(max = 64) String transactionRef) {}
 
     public record SaleItemComponentDto(UUID productId, String name, int qty) {
         static SaleItemComponentDto of(SaleItemComponent c) {
@@ -87,7 +92,7 @@ public class SaleController {
 
         Shift shift = shifts.currentOrOpen(p, registerId);
         List<SaleItem> items = new ArrayList<>(body.items().size());
-        int total = 0;
+        long totalLong = 0; // long so oversized carts can't overflow into a negative total
         for (NewSaleItem ni : body.items()) {
             Product prod = products.findById(ni.productId())
                     .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST,
@@ -99,8 +104,7 @@ public class SaleController {
                 throw new ResponseStatusException(BAD_REQUEST, "„" + prod.getName() + "“ ist nicht rabattierbar");
             }
             int priceCents = applyDiscount(listPrice, discountPercent, prod.getMinPriceCents());
-            int line = priceCents * ni.qty();
-            total += line;
+            totalLong += (long) priceCents * ni.qty();
 
             List<SaleItemComponent> comps = prod.getComponents().stream()
                     .map(pc -> SaleItemComponent.builder()
@@ -123,6 +127,11 @@ public class SaleController {
                     .components(new ArrayList<>(comps))
                     .build());
         }
+
+        if (totalLong > MAX_TOTAL_CENTS) {
+            throw new ResponseStatusException(BAD_REQUEST, "Summe zu groß");
+        }
+        int total = (int) totalLong;
 
         int given = body.givenCents();
         int change = 0;

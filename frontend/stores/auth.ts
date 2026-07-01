@@ -9,6 +9,13 @@ interface LoginResponse {
 const TOKEN_COOKIE = 'kasse-token'
 const USER_COOKIE = 'kasse-user'
 
+/** Secure so the token never travels over plain HTTP once deployed behind TLS (localhost is exempt in browsers). */
+const cookieOpts = (maxAge: number) => ({
+  sameSite: 'lax' as const,
+  secure: import.meta.client && location.protocol === 'https:',
+  maxAge,
+})
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: null as string | null,
@@ -24,8 +31,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     persistCookie() {
-      const t = useCookie<string | null>(TOKEN_COOKIE, { sameSite: 'lax', maxAge: 60 * 60 * 24 })
-      const u = useCookie<AuthUser | null>(USER_COOKIE, { sameSite: 'lax', maxAge: 60 * 60 * 24 })
+      const t = useCookie<string | null>(TOKEN_COOKIE, cookieOpts(60 * 60 * 24))
+      const u = useCookie<AuthUser | null>(USER_COOKIE, cookieOpts(60 * 60 * 24))
       t.value = this.token
       u.value = this.user
     },
