@@ -43,7 +43,6 @@ ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -Djava.security.egd=file:/dev/./urandom"
 EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
-  CMD curl -fsS http://localhost:8080/api/auth/login -o /dev/null -X POST \
-      -H content-type:application/json -d '{}' || exit 1
+  CMD curl -s http://localhost:8080/api/categories -o /dev/null -w "%{http_code}" | grep -q "401"
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

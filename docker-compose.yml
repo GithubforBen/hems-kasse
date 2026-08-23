@@ -72,15 +72,16 @@ services:
 
   # -----------------------------------------------------------------------
   # Cloudflare Tunnel profile — start with: docker compose --profile tunnel up
-  # Routing is defined in cloudflared/config.yml (no Cloudflare dashboard needed).
+  # Set TUNNEL_TOKEN in .env (token from the Cloudflare dashboard).
+  # Configure public hostnames in the Cloudflare dashboard:
+  #   kasse.ben-schnorr.com     → http://frontend:3000
+  #   api.kasse.ben-schnorr.com → http://backend:8080
   # -----------------------------------------------------------------------
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./cloudflared:/etc/cloudflared:ro
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     depends_on:
       - frontend
       - backend
