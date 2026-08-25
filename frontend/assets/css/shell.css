@@ -168,3 +168,18 @@
   font-size:11.5px; font-weight:600;
 }
 .clock{ font-variant-numeric:tabular-nums; font-family:var(--font-mono); font-size:12px }
+
+/* Abrechnungs-Nr. — the number printed on the money envelope this shift books into.
+   Monospace + tabular figures so the digits stay readable at a glance on the counter. */
+.abrechnung-badge{
+  font-family:var(--font-mono);
+  font-variant-numeric:tabular-nums;
+  font-size:11.5px; font-weight:600;
+  line-height:1.6;
+  padding:1px 7px;
+  border-radius:999px;
+  background:var(--paper);
+  border:1px solid var(--line-2);
+  color:var(--ink-2);
+  white-space:nowrap;
+}

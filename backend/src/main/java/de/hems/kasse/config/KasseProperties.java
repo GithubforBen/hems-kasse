@@ -1,6 +1,7 @@
 package de.hems.kasse.config;
 
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,22 +22,38 @@ public class KasseProperties {
     private Jwt jwt = new Jwt();
     private Cors cors = new Cors();
 
-    /** Raw comma-separated "KLASSE:passwort,KLASSE:passwort" from KASSE_CLASS_PASSWORDS. */
-    private String classes = "";
-    /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. */
-    private String admins = "";
+    /**
+     * Raw comma-separated "GRUPPE:passwort,GRUPPE:passwort" from KASSE_GROUP_PASSWORDS.
+     * Only used to seed the account table on first start; afterwards the admin area is
+     * the place where logins are managed.
+     */
+    private String groupPasswords = "";
+    /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. Seed only, see above. */
+    private String adminUsers = "";
+
+    /**
+     * Key for encrypting stored account passwords (KASSE_SECRET_KEY). Changing it makes existing
+     * passwords unreadable — they then have to be regenerated in the admin area.
+     */
+    private String secretKey = "";
 
     private Epc epc = new Epc();
 
-    /** Lowercase klasse name → plaintext password. */
-    private Map<String, String> classPasswords = new LinkedHashMap<>();
-    /** Lowercase username → plaintext password. */
-    private Map<String, String> adminUsers = new LinkedHashMap<>();
+    /**
+     * Parsed views of the two raw lists above. They are deliberately not settable: a settable
+     * {@code Map} field here would share its canonical name with the environment variable that
+     * feeds the raw string (KASSE_GROUP_PASSWORDS → {@code kasse.group-passwords}), and Spring
+     * would then try to bind that string straight onto the map and refuse to start.
+     */
+    @Setter(AccessLevel.NONE)
+    private Map<String, String> passwordsByGroup = new LinkedHashMap<>();
+    @Setter(AccessLevel.NONE)
+    private Map<String, String> passwordsByAdmin = new LinkedHashMap<>();
 
     @PostConstruct
     void parseColonLists() {
-        classPasswords = parse(classes);
-        adminUsers = parse(admins);
+        passwordsByGroup = parse(groupPasswords);
+        passwordsByAdmin = parse(adminUsers);
     }
 
     private static Map<String, String> parse(String raw) {

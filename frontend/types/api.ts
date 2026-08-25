@@ -2,8 +2,29 @@ export type Role = 'VERKAUF' | 'ADMIN'
 
 export interface AuthUser {
   name: string
-  klasse: string | null
+  gruppe: string | null
+  /** Nummer des Geldumschlags, auf den diese Anmeldung abrechnet. */
+  abrechnungNr: number | null
   role: Role
+}
+
+/** A Gruppe or admin login, as managed in the admin area. Never carries a password. */
+export interface AccountDto {
+  id: string
+  role: Role
+  name: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** An account plus its readable password — everything a Passwort-Zettel needs. */
+export interface SlipDto {
+  id: string
+  role: Role
+  name: string
+  active: boolean
+  password: string
 }
 
 export interface ComponentDto {
@@ -68,7 +89,8 @@ export interface SaleDto {
 export interface ShiftDto {
   id: string
   userName: string
-  klasse: string | null
+  gruppe: string | null
+  abrechnungNr: number | null
   role: Role
   registerId: string | null
   registerName: string | null

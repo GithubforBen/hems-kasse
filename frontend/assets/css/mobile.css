@@ -20,9 +20,10 @@
   /* ---- TopBar ---- */
   .clock{ display:none }
   .topbar .brand-text{ display:none }
-  /* user: keep avatar only */
+  /* user: keep avatar only — plus the Abrechnungs-Nr., which must never be guessed at */
   .user-pill span:not(.avatar){ display:none }
-  .user-pill{ padding:3px }
+  .user-pill .abrechnung-badge{ display:inline }
+  .user-pill{ padding:3px 8px 3px 3px }
   .topbar .right{ gap:6px }
   .topbar .right .btn.ghost{ padding:5px 8px; font-size:12px }
   /* Farm toggle: dot only */

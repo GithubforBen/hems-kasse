@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,13 +34,14 @@ class SmokeTest {
     @Test
     void verkaufLoginSucceedsAndCategoriesReturnSeededData() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","abrechnungNr":101,"password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.user.abrechnungNr").value(101))
                 .andExpect(jsonPath("$.user.role").value("VERKAUF"))
                 .andReturn();
         String token = new com.fasterxml.jackson.databind.ObjectMapper()
@@ -56,7 +58,7 @@ class SmokeTest {
     @Test
     void wrongPasswordIs401() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"X","klasse":"BG12e","password":"nope"}
+                {"role":"VERKAUF","name":"X","gruppe":"1","abrechnungNr":102,"password":"nope"}
                 """;
         mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +90,7 @@ class SmokeTest {
     void minimalShiftEndToEnd_andCsvExport() throws Exception {
         // Verkauf logs in
         String loginBody = """
-                {"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","abrechnungNr":42,"password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -112,7 +114,8 @@ class SmokeTest {
         mvc.perform(get("/api/shifts/current")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Kasse-Register-Id", register))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.abrechnungNr").value(42));
 
         // Record one BAR sale of 2× 1,50 € = 3,00 €, gave 5,00 €
         String saleBody = """
@@ -164,8 +167,8 @@ class SmokeTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Klasse;Kassette;Rolle"), mineCsv);
-        assertTrue(mineCsv.contains(";Timo;BG12e;Kassette 1;VERKAUF;"), mineCsv);
+        assertTrue(mineCsv.contains("Schicht-ID;Abrechnung;Verkäufer:in;Gruppe;Kassette;Rolle"), mineCsv);
+        assertTrue(mineCsv.contains(";#42;Timo;1;Kassette 1;VERKAUF;"), mineCsv);
 
         // Admin "all" requires admin role — Verkauf gets 403.
         mvc.perform(get("/api/shifts/export.csv?type=shifts")
@@ -200,7 +203,7 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.discountable").value(false));
 
-        String tok = token(login("VERKAUF", "Timo", "BG12e", "Passw0rd"));
+        String tok = token(login("VERKAUF", "Timo", "2", 43, "Görner"));
 
         // 50 % off 1,50 € would be 0,75 € but the 1,30 € floor caps it.
         mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
@@ -229,12 +232,248 @@ class SmokeTest {
                 .andExpect(status().isBadRequest());
     }
 
-    private String login(String role, String name, String klasse, String password) throws Exception {
-        String body = (klasse == null)
-                ? "{\"role\":\"%s\",\"name\":\"%s\",\"password\":\"%s\"}".formatted(role, name, password)
-                : "{\"role\":\"%s\",\"name\":\"%s\",\"klasse\":\"%s\",\"password\":\"%s\"}".formatted(role, name, klasse, password);
-        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+    // ------------------------------------------------------------------
+    // Abrechnungs-Nr. (envelope number entered at login)
+    // ------------------------------------------------------------------
+
+    @Test
+    void verkaufLoginRequiresAUsableAbrechnungNr() throws Exception {
+        // Missing entirely
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Timo", "1", null, "Passw0rd")))
+                .andExpect(status().isBadRequest());
+        // Zero, negative and out-of-range are all refused before a session exists
+        for (int bad : new int[]{0, -1, 1_000_000}) {
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("VERKAUF", "Timo", "1", bad, "Passw0rd")))
+                    .andExpect(status().isBadRequest());
+        }
+        // Garbage in the numeric field is a 400, never a 500
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Timo\",\"gruppe\":\"1\","
+                                + "\"abrechnungNr\":\"zwölf\",\"password\":\"Passw0rd\"}"))
+                .andExpect(status().isBadRequest());
+        // Admins never run an Abrechnung, so they may log in without one
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("ADMIN", "alice", null, null, "adminPW1")))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * The Abrechnung is handed in once. Neither a stale tab nor a fresh login may book
+     * anything else into it — this is the "reload the page after closing" case.
+     */
+    @Test
+    void closedAbrechnungIsNeverReopened() throws Exception {
+        String register = "00000000-0000-0000-0000-000000000501";
+        String tok = token(login("VERKAUF", "Nora", "5", 47, "pw5"));
+
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.abrechnungNr").value(47));
+
+        mvc.perform(post("/api/shifts/current/close").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"countedCashCents\":5000,\"notes\":\"\"}"))
+                .andExpect(status().isOk());
+
+        // Same still-valid token, e.g. a tab that was reloaded after the close:
+        // no new shift is silently opened on the spent envelope.
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+
+        // And logging in again with the same envelope is refused right at the form.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nora", "5", 47, "pw5")))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void runningAbrechnungIsSharedWithinTheGroupAndClosedToOthers() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String register = "00000000-0000-0000-0000-000000000501";
+
+        String first = token(login("VERKAUF", "Ada", "3", 44, "pw3"));
+        String shiftId = om.readTree(mvc.perform(get("/api/shifts/current")
+                        .header("Authorization", "Bearer " + first)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .get("id").asText();
+
+        // Same group, same envelope → second cashier joins the running Abrechnung.
+        String second = token(login("VERKAUF", "Ben", "3", 44, "pw3"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + second)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(shiftId));
+
+        // Same group, but someone grabbed the wrong envelope → refused, not silently rebooked.
+        String wrongEnvelope = token(login("VERKAUF", "Cem", "3", 48, "pw3"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + wrongEnvelope)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+
+        // Another group cannot claim an envelope that is already in use.
+        String otherGroup = token(login("VERKAUF", "Dana", "4", 44, "pw4"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + otherGroup)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void adminCanFilterShiftsByAbrechnungNr() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        // #999999 was never used, so the filter must come back empty rather than erroring.
+        mvc.perform(get("/api/shifts?abrechnungNr=999999").header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // ------------------------------------------------------------------
+    // Konten (Gruppen & Admins) im Admin-Bereich
+    // ------------------------------------------------------------------
+
+    @Test
+    void envLoginsAreSeededIntoTheAccountTable() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var list = mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + adminTok))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        // Everything configured for the test profile arrived, and the listing never carries passwords.
+        assertTrue(list.contains("\"name\":\"alice\""), list);
+        assertTrue(list.contains("\"name\":\"1\""), list);
+        assertTrue(!list.contains("password"), "Die Liste darf keine Passwörter enthalten: " + list);
+    }
+
+    @Test
+    void adminCreatesAGruppeAndItCanLogInImmediately() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+
+        var created = om.readTree(mvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Gruppe 7\",\"password\":\"geheim123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.password").value("geheim123"))
+                .andReturn().getResponse().getContentAsString());
+        String id = created.get("id").asText();
+
+        // The new Gruppe works right away, and the name is stored as typed.
+        var body = login("VERKAUF", "Nina", "Gruppe 7", 301, "geheim123");
+        assertTrue(body.contains("\"gruppe\":\"Gruppe 7\""), body);
+
+        // Names are case-insensitive on login but keep their stored spelling.
+        var lower = login("VERKAUF", "Nina", "gruppe 7", 302, "geheim123");
+        assertTrue(lower.contains("\"gruppe\":\"Gruppe 7\""), lower);
+
+        // Duplicates are refused regardless of capitalisation.
+        mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"GRUPPE 7\"}"))
+                .andExpect(status().isConflict());
+
+        // A generated password comes back readable and works.
+        var reset = om.readTree(mvc.perform(post("/api/accounts/" + id + "/password")
+                        .header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        String generated = reset.get("password").asText();
+        assertTrue(generated.length() >= 8, generated);
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 7", 303, generated)))
+                .andExpect(status().isOk());
+        // …and the old one stops working.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 7", 304, "geheim123")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deactivatedAccountCannotLogIn() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        String id = om.readTree(mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Gruppe 8\",\"password\":\"geheim123\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("id").asText();
+
+        mvc.perform(patch("/api/accounts/" + id).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 8", 305, "geheim123")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void slipsCarryThePasswordsAndStayOutOfCaches() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var slips = mvc.perform(get("/api/accounts/slips").header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn().getResponse().getContentAsString();
+        // Reprintable at any time: the seeded password comes back in the clear.
+        assertTrue(slips.contains("\"password\":\"Passw0rd\""), slips);
+    }
+
+    @Test
+    void accountEndpointsAreAdminOnly() throws Exception {
+        String verkaufTok = token(login("VERKAUF", "Timo", "1", 306, "Passw0rd"));
+        mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + verkaufTok))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/accounts/slips").header("Authorization", "Bearer " + verkaufTok))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + verkaufTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"ADMIN\",\"name\":\"boese\",\"password\":\"hunter22\"}"))
+                .andExpect(status().isForbidden());
+        // Unauthenticated is refused too.
+        mvc.perform(get("/api/accounts/slips")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void theLastAdminCannotBeRemoved() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var all = om.readTree(mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + adminTok))
+                .andReturn().getResponse().getContentAsString());
+        String aliceId = null;
+        for (var n : all) if ("alice".equals(n.get("name").asText())) aliceId = n.get("id").asText();
+
+        // alice is the only admin and is the caller — both guards apply.
+        mvc.perform(delete("/api/accounts/" + aliceId).header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isConflict());
+        mvc.perform(patch("/api/accounts/" + aliceId).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isConflict());
+        // Still able to log in afterwards.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("ADMIN", "alice", null, null, "adminPW1")))
+                .andExpect(status().isOk());
+    }
+
+    private String login(String role, String name, String gruppe, String password) throws Exception {
+        return login(role, name, gruppe, null, password);
+    }
+
+    private String login(String role, String name, String gruppe, Integer abrechnungNr, String password)
+            throws Exception {
+        return mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(role, name, gruppe, abrechnungNr, password)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
+    private static String loginJson(String role, String name, String gruppe, Integer abrechnungNr, String password) {
+        StringBuilder b = new StringBuilder("{\"role\":\"%s\",\"name\":\"%s\"".formatted(role, name));
+        if (gruppe != null) b.append(",\"gruppe\":\"%s\"".formatted(gruppe));
+        if (abrechnungNr != null) b.append(",\"abrechnungNr\":%d".formatted(abrechnungNr));
+        return b.append(",\"password\":\"%s\"}".formatted(password)).toString();
     }
 
     private static String token(String loginJson) throws Exception {

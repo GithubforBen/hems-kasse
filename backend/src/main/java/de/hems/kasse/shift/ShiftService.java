@@ -22,6 +22,9 @@ import static org.springframework.http.HttpStatus.*;
 @Service
 public class ShiftService {
 
+    /** Highest envelope number we accept — keeps typos like a scanned barcode out of the books. */
+    public static final int MAX_ABRECHNUNG_NR = 999_999;
+
     private final ShiftRepository shifts;
     private final SaleRepository sales;
     private final RegisterRepository registers;
@@ -37,11 +40,38 @@ public class ShiftService {
     }
 
     /**
+     * Guards the envelope number a cashier typed at login. A number that already belongs to a
+     * closed Abrechnung must never be reused — its envelope has been handed in and its figures
+     * are final. Called both at login (fail fast, before a session exists) and again when a
+     * shift is actually opened, because the Abrechnung may have been closed in between — for
+     * instance by a colleague, or by this very device before the page was reloaded.
+     *
+     * @throws ResponseStatusException 400 if the number is missing or out of range,
+     *                                 409 if it belongs to an already closed Abrechnung
+     */
+    public void assertUsable(Integer abrechnungNr) {
+        if (abrechnungNr == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Abrechnungs-Nr. fehlt");
+        }
+        if (abrechnungNr < 1 || abrechnungNr > MAX_ABRECHNUNG_NR) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Abrechnungs-Nr. muss zwischen 1 und " + MAX_ABRECHNUNG_NR + " liegen");
+        }
+        shifts.findByAbrechnungNr(abrechnungNr)
+                .filter(Shift::isClosed)
+                .ifPresent(closed -> {
+                    throw new ResponseStatusException(CONFLICT,
+                            "Abrechnung #" + abrechnungNr + " wurde bereits abgeschlossen. "
+                                    + "Bitte die Nummer des nächsten Umschlags verwenden.");
+                });
+    }
+
+    /**
      * Returns the caller's open shift for the given Kassette, opening a new one if none is
      * active. VERKAUF callers must supply a registerId (each register runs its own independent
      * shift); ADMIN callers never select a register and keep the legacy single-shift behaviour.
      *
-     * <p>Several cashiers of the same class share one shift per register: the first to arrive
+     * <p>Several cashiers of the same group share one shift per register: the first to arrive
      * opens it, everyone after joins the running shift. If two of them open the very first
      * shift of a register at the same instant, the partial unique index lets exactly one INSERT
      * win; the loser catches the conflict and joins the winner's shift instead of erroring.
@@ -57,19 +87,58 @@ public class ShiftService {
         Register register = registers.findById(registerId)
                 .filter(Register::isActive)
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Unbekannte Kassette"));
-        return shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(p.subjectKey(), registerId)
-                .orElseGet(() -> openOrJoin(p, register));
+        var running = shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(p.subjectKey(), registerId);
+        if (running.isPresent()) {
+            return joinRunning(running.get(), p);
+        }
+        assertUsable(p.abrechnungNr());
+        return openOrJoin(p, register);
+    }
+
+    /**
+     * The caller's group already has this Kassette open. Joining is only correct when both are
+     * working out of the same envelope; otherwise one of the two would book sales into an
+     * Abrechnung that will be handed in under a different number.
+     */
+    private Shift joinRunning(Shift running, KassePrincipal p) {
+        Integer open = running.getAbrechnungNr();
+        if (open != null && !open.equals(p.abrechnungNr())) {
+            throw new ResponseStatusException(CONFLICT,
+                    "An " + running.getRegisterName() + " läuft bereits Abrechnung #" + open
+                            + ". Bitte mit dieser Nummer anmelden oder die Abrechnung zuerst abschließen.");
+        }
+        return running;
     }
 
     private Shift openOrJoin(KassePrincipal p, Register register) {
         try {
             return self.openShift(p, register);
         } catch (DataIntegrityViolationException race) {
-            // A cashier of the same class opened this register's first shift concurrently —
-            // join the one that won the INSERT instead of surfacing a 500.
-            return shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(p.subjectKey(), register.getId())
-                    .orElseThrow(() -> race);
+            // Two indexes can reject this INSERT. Either a cashier of the same group opened this
+            // register's shift concurrently — then join the one that won — or the envelope number
+            // is in use elsewhere, which is a mistake the cashier has to resolve at the counter.
+            var winner = shifts.findFirstBySubjectKeyAndRegisterIdAndClosedAtIsNull(
+                    p.subjectKey(), register.getId());
+            if (winner.isPresent()) {
+                return joinRunning(winner.get(), p);
+            }
+            throw abrechnungInUse(p.abrechnungNr(), race);
         }
+    }
+
+    /**
+     * Turns a unique-index violation on the envelope number into a message that names where the
+     * envelope is being used, so nobody has to guess why the login was refused.
+     */
+    private ResponseStatusException abrechnungInUse(Integer abrechnungNr, DataIntegrityViolationException race) {
+        Shift other = shifts.findByAbrechnungNr(abrechnungNr).orElse(null);
+        if (other == null) throw race;
+        String where = other.isClosed()
+                ? "wurde bereits abgeschlossen"
+                : "läuft bereits für Gruppe " + other.getGruppe() + " an " + other.getRegisterName();
+        return new ResponseStatusException(CONFLICT,
+                "Abrechnung #" + abrechnungNr + " " + where
+                        + ". Bitte die Nummer des nächsten Umschlags verwenden.");
     }
 
     /**
@@ -87,7 +156,8 @@ public class ShiftService {
                 .subjectKey(p.subjectKey())
                 .userName(p.name())
                 .role(p.role().name())
-                .klasse(p.klasse())
+                .gruppe(p.gruppe())
+                .abrechnungNr(p.abrechnungNr())
                 .registerId(register != null ? register.getId() : null)
                 .registerName(register != null ? register.getName() : null)
                 .openingCashCents(5000) // matches prototype default 50,00 €

@@ -27,7 +27,11 @@ public class Shift {
     private String role; // VERKAUF | ADMIN
 
     @Column(length = 40)
-    private String klasse;
+    private String gruppe;
+
+    /** Nummer des Geldumschlags, mit dem diese Abrechnung abgegeben wird. */
+    @Column(name = "abrechnung_nr")
+    private Integer abrechnungNr;
 
     @Column(name = "register_id")
     private UUID registerId;

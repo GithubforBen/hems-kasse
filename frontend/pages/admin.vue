@@ -1,12 +1,19 @@
 <script setup lang="ts">
 const shift = useShiftStore()
 const register = useRegisterStore()
-const filters = reactive({ q: '', klasse: '', registerId: '' })
+const filters = reactive({ q: '', gruppe: '', abrechnungNr: '', registerId: '' })
+
+/** Only a whole number is a usable filter; anything else is treated as "not filtered". */
+const abrechnungFilter = computed(() => {
+  const raw = filters.abrechnungNr.trim()
+  return /^\d{1,6}$/.test(raw) ? Number(raw) : undefined
+})
 
 async function refreshHistory() {
   await shift.fetchAll({
     q: filters.q || undefined,
-    klasse: filters.klasse || undefined,
+    gruppe: filters.gruppe || undefined,
+    abrechnungNr: abrechnungFilter.value,
     registerId: filters.registerId || undefined,
   })
 }
@@ -16,7 +23,7 @@ onMounted(() => {
   register.fetch().catch(() => {})
 })
 
-const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('catalog')
+const tab = ref<'catalog' | 'registers' | 'accounts' | 'inventory' | 'stats' | 'shifts'>('catalog')
 </script>
 
 <template>
@@ -42,6 +49,10 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
           @click="tab = 'inventory'">Lager</button>
         <button
           class="btn"
+          :class="tab === 'accounts' ? '' : 'ghost'"
+          @click="tab = 'accounts'">Gruppen & Logins</button>
+        <button
+          class="btn"
           :class="tab === 'stats' ? '' : 'ghost'"
           style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
           @click="tab = 'stats'">Statistiken</button>
@@ -55,6 +66,7 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
       <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
         <AdminCatalog v-if="tab === 'catalog'" />
         <AdminRegisters v-else-if="tab === 'registers'" />
+        <AdminAccounts v-else-if="tab === 'accounts'" />
         <AdminInventory v-else-if="tab === 'inventory'" />
         <AdminStats v-else-if="tab === 'stats'" />
 
@@ -75,8 +87,17 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
               <input
                 class="input"
                 style="max-width:160px"
-                v-model="filters.klasse"
-                placeholder="Klasse, z. B. BG12e"
+                v-model="filters.gruppe"
+                placeholder="Gruppe, z. B. 1"
+                @keydown.enter="refreshHistory" />
+              <input
+                class="input"
+                style="max-width:170px"
+                v-model="filters.abrechnungNr"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Abrechnung, z. B. 7"
                 @keydown.enter="refreshHistory" />
               <select class="input" style="max-width:170px" v-model="filters.registerId" @change="refreshHistory">
                 <option value="">Alle Kassetten</option>
@@ -90,7 +111,8 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
                 path="/api/shifts/export.csv"
                 :types="['shifts', 'items', 'products', 'sales']"
                 :filters="{
-                  klasse: filters.klasse || undefined,
+                  gruppe: filters.gruppe || undefined,
+                  abrechnungNr: abrechnungFilter,
                   registerId: filters.registerId || undefined,
                   q: filters.q || undefined,
                 }" />

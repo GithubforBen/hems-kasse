@@ -13,6 +13,14 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  # NOTE: this H2 setup cannot currently run the migrations. The schema uses two PostgreSQL
+  # features H2 has no equivalent for: split_part() in V4, and the partial unique indexes in
+  # V5/V14 ("create unique index ... where ..."), which enforce one open shift per Kassette and
+  # one Abrechnung per envelope number. SmokeTest therefore fails on context start.
+  # Point this datasource at a real PostgreSQL (or wire up Testcontainers) to run the suite:
+  #   url: jdbc:postgresql://localhost:5432/kasse_test
+  #   driver-class-name: org.postgresql.Driver
+  #   dialect: org.hibernate.dialect.PostgreSQLDialect
 
 kasse:
   jwt:
@@ -20,8 +28,9 @@ kasse:
     ttl-hours: 1
   cors:
     origins: http://localhost:3000
-  classes: BG12e:Passw0rd,BG12f:Görner
-  admins: alice:adminPW1
+  secret-key: test-secret-key-for-account-encryption-32+
+  group-passwords: "1:Passw0rd,2:Görner,3:pw3,4:pw4,5:pw5"
+  admin-users: alice:adminPW1
   epc:
     name: Test Schulkasse
     iban: DE89370400440532013000

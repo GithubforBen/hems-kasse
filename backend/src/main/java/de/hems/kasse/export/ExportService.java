@@ -30,7 +30,7 @@ public class ExportService {
     /** Per-shift summary table — {@code shifts.csv}. */
     public String shiftsCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse", "Kassette", "Rolle",
+                "Schicht-ID", "Abrechnung", "Verkäufer:in", "Gruppe", "Kassette", "Rolle",
                 "Gestartet", "Abgeschlossen",
                 "Anfangsbestand (€)",
                 "Umsatz Bar (€)", "Umsatz Karte (€)", "Umsatz PayPal (€)", "Umsatz gesamt (€)",
@@ -40,8 +40,9 @@ public class ExportService {
         for (Shift s : shifts) {
             w.row(
                     s.getId(),
+                    abrechnung(s),
                     s.getUserName(),
-                    nullToEmpty(s.getKlasse()),
+                    nullToEmpty(s.getGruppe()),
                     nullToEmpty(s.getRegisterName()),
                     s.getRole(),
                     dateTime(s.getStartedAt()),
@@ -64,7 +65,7 @@ public class ExportService {
     /** One row per sale receipt — {@code verkaeufe.csv}. */
     public String salesCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse",
+                "Schicht-ID", "Abrechnung", "Verkäufer:in", "Gruppe",
                 "Datum", "Uhrzeit",
                 "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Summe (€)", "Gegeben (€)", "Rückgeld (€)",
@@ -81,8 +82,9 @@ public class ExportService {
                         .reduce((a, b) -> a + ", " + b).orElse("");
                 w.row(
                         s.getId(),
+                        abrechnung(s),
                         s.getUserName(),
-                        nullToEmpty(s.getKlasse()),
+                        nullToEmpty(s.getGruppe()),
                         date(x.getTs()),
                         time(x.getTs()),
                         bonNr,
@@ -101,7 +103,7 @@ public class ExportService {
     /** One row per line item — {@code artikel.csv}, most granular. */
     public String itemsCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse",
+                "Schicht-ID", "Abrechnung", "Verkäufer:in", "Gruppe",
                 "Datum", "Uhrzeit",
                 "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Produkt", "Menge", "Einzelpreis (€)", "Zeilensumme (€)");
@@ -113,8 +115,9 @@ public class ExportService {
                 for (SaleItem it : x.getItems()) {
                     w.row(
                             s.getId(),
+                            abrechnung(s),
                             s.getUserName(),
-                            nullToEmpty(s.getKlasse()),
+                            nullToEmpty(s.getGruppe()),
                             date(x.getTs()),
                             time(x.getTs()),
                             bonNr,
@@ -128,6 +131,11 @@ public class ExportService {
             }
         }
         return w.toCsv();
+    }
+
+    /** Envelope number as printed on the receipt/report, empty for shifts predating the scheme. */
+    private static String abrechnung(Shift s) {
+        return s.getAbrechnungNr() == null ? "" : "#" + s.getAbrechnungNr();
     }
 
     /** Aggregated per-product totals — {@code produkte.csv}. */

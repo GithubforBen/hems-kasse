@@ -5,7 +5,8 @@ Ein Kassensystem für Schulkuchen-Verkäufe — basierend auf dem Claude-Design-
 - **Frontend:** Nuxt 3 (Vue 3, TypeScript, Pinia)
 - **Backend:** Spring Boot 3.3, Java 21, Spring Security + JWT, JPA, Flyway
 - **Datenbank:** PostgreSQL (H2 nur für Tests)
-- **Login:** Klassen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — beide aus `.env`
+- **Login:** Gruppen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — im Admin-Bereich verwaltet
+- **Abrechnungs-Nr.:** beim Login wird die Nummer des Geldumschlags eingegeben; jede Abrechnung hängt an genau einem Umschlag
 - **Karte = SEPA-Überweisung per EPC-QR (Girocode)** — der Backend rendert das PNG selbst (ZXing)
 - **Schichthistorie:** Jede Person sieht eigene Abschlüsse, Admin sieht alle (mit Filtern)
 
@@ -29,7 +30,7 @@ hems-kasse/
 
 ```bash
 cp .env.example .env
-# .env bearbeiten: KASSE_CLASS_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
+# .env bearbeiten: KASSE_SECRET_KEY, KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
 #                   KASSE_EPC_NAME / KASSE_EPC_IBAN, optional POSTGRES_PASSWORD …
 
 docker compose up --build
@@ -63,7 +64,7 @@ Mehrere Hosts? Setze `NUXT_PUBLIC_API_BASE` und `KASSE_CORS_ORIGINS` in der `.en
 ```bash
 cd backend
 cp .env.example .env
-# .env anpassen: KASSE_CLASS_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
+# .env anpassen: KASSE_SECRET_KEY, KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
 
 # Postgres bereitstellen (lokal)
 createdb kasse
@@ -74,11 +75,64 @@ mvn spring-boot:run
 
 Flyway erzeugt die Tabellen automatisch und legt die Standard-Kategorien (Kuchen, Muffins & Kekse, Herzhaft, Getränke) inklusive Produkten aus dem Prototyp an.
 
+### Gruppen & Logins (Admin-Bereich)
+
+Unter **Admin → Gruppen & Logins** legen Administratoren Gruppen und weitere Admin-Konten an,
+benennen sie um, deaktivieren sie und vergeben neue Passwörter.
+
+- Beim Anlegen einer Gruppe wird automatisch ein Passwort erzeugt (10 Zeichen, ohne die leicht
+  zu verwechselnden `0/O`, `1/l/I`) und sofort der Passwort-Zettel geöffnet.
+- **Passwort-Zettel** lassen sich jederzeit neu drucken — einzeln oder gesammelt für alle
+  Gruppen bzw. alle Konten. Jeder Zettel zeigt Name, Passwort im Klartext und einen QR-Code.
+- Der **QR-Code** öffnet die Kasse mit vorausgefüllter Gruppe und Passwort. An der Kasse müssen
+  nur noch Name und Abrechnungs-Nr. eingetragen werden. Die Zugangsdaten stehen im
+  URL-Fragment (`#login=…`), das vom Browser nie an den Server geschickt wird — sie landen also
+  in keinem Server- oder Proxy-Log. Die Login-Seite entfernt sie sofort aus der Adresszeile.
+- Ein **neues Passwort macht alte Zettel ungültig** — der QR-Code darauf funktioniert nicht mehr.
+- Das letzte aktive Admin-Konto lässt sich weder löschen noch deaktivieren, und niemand kann sein
+  eigenes Konto löschen. Damit kann sich niemand selbst aussperren.
+- Gelöschte Gruppen ändern nichts an der Historie: Schichten speichern den Gruppennamen als Text.
+
+**Speicherung:** Die Passwörter liegen AES-256-GCM-verschlüsselt in der Datenbank (Schlüssel:
+`KASSE_SECRET_KEY`), damit Zettel jederzeit nachgedruckt werden können. Ein Datenbank-Backup
+allein gibt sie nicht preis; wer Datenbank **und** Schlüssel hat, kann sie lesen. Wird
+`KASSE_SECRET_KEY` nachträglich geändert, sind alle gespeicherten Passwörter unlesbar und müssen
+im Admin-Bereich neu erzeugt werden.
+
+**Erstbefüllung:** Beim ersten Start werden `KASSE_GROUP_PASSWORDS` und `KASSE_ADMIN_USERS` in die
+Datenbank übernommen, damit bestehende Installationen weiterlaufen. Danach ist die Datenbank
+maßgeblich — im Admin-Bereich geänderte Passwörter werden von den `.env`-Werten nicht wieder
+überschrieben. Existiert noch kein Konto mit dem Namen aus der `.env`, wird es beim Start ergänzt.
+
+### Abrechnungs-Nr. (Geldumschläge)
+
+Jede Schicht rechnet auf genau einen nummerierten Geldumschlag ab. Die Nummer wird beim Login
+eingegeben und mit der Abrechnung verbunden — sie taucht in der Kopfzeile der Kasse, in der
+Schichthistorie und in allen CSV-Exporten auf.
+
+Regeln (serverseitig durchgesetzt, ein Umschlag existiert nur einmal):
+
+- Ganze Zahl von 1 bis 999999.
+- **Abgeschlossen ist abgeschlossen.** Eine Nummer, deren Abrechnung abgeschlossen wurde, kann
+  nicht erneut verwendet werden — weder durch einen neuen Login noch durch ein Tab, das nach dem
+  Abschluss neu geladen wird. In beiden Fällen landet man mit einer Meldung auf dem Login.
+- **Gemeinsam kassieren.** Mehrere Personen derselben Gruppe können sich an derselben Kassette mit
+  derselben Nummer anmelden und teilen sich die laufende Abrechnung.
+- **Falscher Umschlag wird abgewiesen.** Läuft an der Kassette bereits eine andere Nummer, oder ist
+  der Umschlag anderswo im Einsatz, wird die Anmeldung mit einer erklärenden Meldung abgelehnt.
+
+Nach dem Abschluss endet die Sitzung bewusst: die nächste Schicht meldet sich mit dem nächsten
+Umschlag an.
+
 ### Konfiguration (`.env`)
 
 ```
-# Klassen-Passwörter (Verkauf): KLASSE:passwort, KLASSE:passwort
-KASSE_CLASS_PASSWORDS=BG12e:Passw0rd,BG12f:Görner
+# Verschlüsselt die Konto-Passwörter (≥ 32 Zeichen) — `openssl rand -base64 48`
+KASSE_SECRET_KEY=...
+
+# Gruppen-Passwörter (Verkauf): GRUPPE:passwort, GRUPPE:passwort
+# Nur Erstbefüllung — danach werden Logins im Admin-Bereich verwaltet.
+KASSE_GROUP_PASSWORDS=1:Passw0rd,2:Görner
 
 # Admin-Logins: user:passwort, user:passwort
 KASSE_ADMIN_USERS=alice:adminPW1,bob:adminPW2
@@ -131,15 +185,21 @@ Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statische
 | POST | `/api/shifts/current/close` | jeder eingeloggt | Schicht abschließen |
 | GET  | `/api/shifts/mine` | jeder eingeloggt | eigene archivierte Schichten |
 | GET  | `/api/shifts/{id}` | Besitzer ODER ADMIN | Schichtdetails |
-| GET  | `/api/shifts?from&to&klasse&q` | ADMIN | alle Schichten |
+| GET  | `/api/shifts?from&to&gruppe&abrechnungNr&q` | ADMIN | alle Schichten |
 | GET  | `/api/sales` | jeder eingeloggt | Verkäufe der aktuellen Schicht |
 | POST | `/api/sales` | jeder eingeloggt | Verkauf buchen (Server prüft Totals) |
+| GET  | `/api/accounts` | ADMIN | Gruppen & Admin-Logins (ohne Passwörter) |
+| POST | `/api/accounts` | ADMIN | Konto anlegen (leeres Passwort ⇒ erzeugt) |
+| PATCH| `/api/accounts/{id}` | ADMIN | umbenennen / aktivieren |
+| POST | `/api/accounts/{id}/password` | ADMIN | Passwort setzen oder erzeugen |
+| DELETE | `/api/accounts/{id}` | ADMIN | Konto löschen |
+| GET  | `/api/accounts/slips?ids=…` | ADMIN | Zetteldaten inkl. Klartext-Passwort |
 | GET  | `/api/me/pref`, PUT | jeder eingeloggt | Theme-Pref |
 | GET  | `/api/payments/epc-qr.png?amountCents=…` | jeder eingeloggt | EPC-QR PNG |
 | GET  | `/api/payments/epc-payload?amountCents=…` | jeder eingeloggt | Roher EPC-Text (Debug) |
 | GET  | `/api/shifts/{id}/export.csv?type=…` | Besitzer ODER ADMIN | CSV einer einzelnen Schicht |
 | GET  | `/api/shifts/mine/export.csv?type=…` | jeder eingeloggt | CSV aller eigenen Schichten |
-| GET  | `/api/shifts/export.csv?type=…&from=&to=&klasse=&q=` | ADMIN | CSV aller Schichten (gefiltert) |
+| GET  | `/api/shifts/export.csv?type=…&from=&to=&gruppe=&abrechnungNr=&q=` | ADMIN | CSV aller Schichten (gefiltert) |
 
 ### CSV-Export-Typen (`?type=…`)
 
@@ -147,7 +207,7 @@ Vier vordefinierte Berichte, alle in Excel-freundlichem Format (UTF-8 mit BOM, `
 
 | Typ | Inhalt |
 | --- | --- |
-| `shifts` (Default für `mine`/`export.csv`) | Eine Zeile pro Schicht: Datum, Person, Klasse, Anfangsbestand, Umsatz Bar/Karte/Gesamt, **Soll/Ist/Diff**, Bons, Artikel, Anmerkungen |
+| `shifts` (Default für `mine`/`export.csv`) | Eine Zeile pro Schicht: Datum, **Abrechnung**, Person, Gruppe, Anfangsbestand, Umsatz Bar/Karte/Gesamt, **Soll/Ist/Diff**, Bons, Artikel, Anmerkungen |
 | `sales` | Eine Zeile pro Bon: Datum, Uhrzeit, Bon-Nr., Zahlungsart, Summe, Gegeben, Rückgeld, Artikel-Liste |
 | `items` (Default für `{id}`) | Eine Zeile pro Kassenposition (am detailliertesten): Produkt, Menge, Einzelpreis, Zeilensumme |
 | `products` | Aggregat je Produkt: Rang, Menge, Anteil%, Umsatz, Anteil%, Ø-Preis, Bon-Anzahl — beantwortet *„Was wurde verkauft?"* |
@@ -161,6 +221,13 @@ curl -OJ "localhost:8080/api/shifts/<id>/export.csv?type=products" \
 
 ## Smoke-Test
 
+> **Bekannte Einschränkung:** `mvn test` läuft aktuell nicht durch. Die Tests sind auf H2
+> konfiguriert, das Schema braucht aber zwei PostgreSQL-Features ohne H2-Entsprechung:
+> `split_part()` in `V4` und die partiellen Unique-Indizes in `V5`/`V14`
+> (`create unique index … where …`). Für einen grünen Lauf die Datenquelle in
+> `backend/src/test/resources/application-test.yml` auf eine echte PostgreSQL-Instanz zeigen
+> lassen (Kommentar dort) — oder Testcontainers einrichten.
+
 ```bash
 # Backend
 cd backend && mvn test
@@ -168,7 +235,7 @@ cd backend && mvn test
 # Login + Katalog
 TOKEN=$(curl -s -XPOST localhost:8080/api/auth/login \
   -H content-type:application/json \
-  -d '{"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}' \
+  -d '{"role":"VERKAUF","name":"Timo","gruppe":"1","abrechnungNr":1,"password":"Passw0rd"}' \
   | jq -r .token)
 curl -s localhost:8080/api/categories -H "Authorization: Bearer $TOKEN" | jq .
 

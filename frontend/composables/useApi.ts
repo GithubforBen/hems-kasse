@@ -5,6 +5,10 @@ import type { FetchOptions } from 'ofetch'
  *
  * - Injects `Authorization: Bearer <token>` from the auth store on every request.
  * - On 401, clears auth and redirects to /login.
+ * - On 409 from the current-shift endpoints, ends the session the same way: the token names an
+ *   Abrechnung that can no longer be booked into (it was closed, or the envelope is running at
+ *   another Kassette). This is what a tab reloaded after the Abrechnung was closed hits, so it
+ *   has to land on the login form instead of a half-loaded till.
  * - Everything else surfaces as a normal thrown FetchError.
  */
 export const useApi = () => {
@@ -24,15 +28,28 @@ export const useApi = () => {
         options.headers = headers
       }
     },
-    async onResponseError({ response }) {
+    async onResponseError({ request, response }) {
       if (response?.status === 401) {
         auth.clear()
         if (import.meta.client && !location.pathname.startsWith('/login')) {
           await navigateTo('/login')
+        }
+        return
+      }
+      if (response?.status === 409 && isCurrentShiftRequest(request)) {
+        auth.clear()
+        if (import.meta.client && !location.pathname.startsWith('/login')) {
+          await navigateTo({ path: '/login', query: { reason: 'abrechnung' } })
         }
       }
     },
   })
 
   return <T = unknown>(url: string, opts: FetchOptions = {}) => api<T>(url, opts as any)
+}
+
+/** True for /api/shifts/current and its sub-routes — the endpoints tied to the open Abrechnung. */
+function isCurrentShiftRequest(request: unknown): boolean {
+  const url = typeof request === 'string' ? request : (request as Request | undefined)?.url ?? ''
+  return url.includes('/api/shifts/current')
 }
