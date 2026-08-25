@@ -1,12 +1,19 @@
 <script setup lang="ts">
 const shift = useShiftStore()
 const register = useRegisterStore()
-const filters = reactive({ q: '', gruppe: '', registerId: '' })
+const filters = reactive({ q: '', gruppe: '', abrechnungNr: '', registerId: '' })
+
+/** Only a whole number is a usable filter; anything else is treated as "not filtered". */
+const abrechnungFilter = computed(() => {
+  const raw = filters.abrechnungNr.trim()
+  return /^\d{1,6}$/.test(raw) ? Number(raw) : undefined
+})
 
 async function refreshHistory() {
   await shift.fetchAll({
     q: filters.q || undefined,
     gruppe: filters.gruppe || undefined,
+    abrechnungNr: abrechnungFilter.value,
     registerId: filters.registerId || undefined,
   })
 }
@@ -78,6 +85,15 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
                 v-model="filters.gruppe"
                 placeholder="Gruppe, z. B. 1"
                 @keydown.enter="refreshHistory" />
+              <input
+                class="input"
+                style="max-width:170px"
+                v-model="filters.abrechnungNr"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Abrechnung, z. B. 7"
+                @keydown.enter="refreshHistory" />
               <select class="input" style="max-width:170px" v-model="filters.registerId" @change="refreshHistory">
                 <option value="">Alle Kassetten</option>
                 <option v-for="r in register.all" :key="r.id" :value="r.id">{{ r.name }}</option>
@@ -91,6 +107,7 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
                 :types="['shifts', 'items', 'products', 'sales']"
                 :filters="{
                   gruppe: filters.gruppe || undefined,
+                  abrechnungNr: abrechnungFilter,
                   registerId: filters.registerId || undefined,
                   q: filters.q || undefined,
                 }" />

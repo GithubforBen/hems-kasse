@@ -17,6 +17,8 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
 
     boolean existsByRegisterIdAndClosedAtIsNull(UUID registerId);
 
+    Optional<Shift> findByAbrechnungNr(Integer abrechnungNr);
+
     List<Shift> findAllBySubjectKeyAndClosedAtIsNotNullOrderByClosedAtDesc(String subjectKey);
 
     @Query("""
@@ -25,6 +27,7 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
           and s.closedAt >= :from
           and s.closedAt <  :to
           and (:gruppe is null or lower(s.gruppe) = lower(cast(:gruppe as string)))
+          and (:abrechnungNr is null or s.abrechnungNr = :abrechnungNr)
           and (:registerId is null or s.registerId = :registerId)
           and (:q is null or lower(s.userName) like lower(concat('%', cast(:q as string), '%')) escape '!')
         order by s.closedAt desc
@@ -32,6 +35,7 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
     List<Shift> searchClosed(@Param("from") Instant from,
                              @Param("to") Instant to,
                              @Param("gruppe") String gruppe,
+                             @Param("abrechnungNr") Integer abrechnungNr,
                              @Param("registerId") UUID registerId,
                              @Param("q") String q);
 }

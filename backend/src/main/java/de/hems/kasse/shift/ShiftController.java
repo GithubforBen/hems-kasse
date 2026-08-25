@@ -44,7 +44,7 @@ public class ShiftController {
     }
 
     public record ShiftDto(
-            UUID id, String userName, String gruppe, String role,
+            UUID id, String userName, String gruppe, Integer abrechnungNr, String role,
             UUID registerId, String registerName,
             Instant startedAt, Instant closedAt,
             int openingCashCents,
@@ -54,7 +54,7 @@ public class ShiftController {
             String notes
     ) {
         public static ShiftDto of(Shift s) {
-            return new ShiftDto(s.getId(), s.getUserName(), s.getGruppe(), s.getRole(),
+            return new ShiftDto(s.getId(), s.getUserName(), s.getGruppe(), s.getAbrechnungNr(), s.getRole(),
                     s.getRegisterId(), s.getRegisterName(),
                     s.getStartedAt(), s.getClosedAt(),
                     s.getOpeningCashCents(),
@@ -109,12 +109,14 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String gruppe,
+            @RequestParam(required = false) Integer abrechnungNr,
             @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         return shifts.searchClosed(
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 gruppe == null || gruppe.isBlank() ? null : gruppe,
+                abrechnungNr,
                 registerId,
                 escapeLike(q))
                 .stream().map(ShiftDto::of).toList();
@@ -163,7 +165,7 @@ public class ShiftController {
         return csv(body, "meine-schichten-" + t.slug() + "-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
     }
 
-    /** All closed shifts (admin), filterable by date range / gruppe / name. */
+    /** All closed shifts (admin), filterable by date range / gruppe / Abrechnungs-Nr. / name. */
     @GetMapping("/export.csv")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportAll(
@@ -171,6 +173,7 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String gruppe,
+            @RequestParam(required = false) Integer abrechnungNr,
             @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         ExportType t = parseType(type);
@@ -178,6 +181,7 @@ public class ShiftController {
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
                 gruppe == null || gruppe.isBlank() ? null : gruppe,
+                abrechnungNr,
                 registerId,
                 escapeLike(q));
         String body = exports.render(t, list);

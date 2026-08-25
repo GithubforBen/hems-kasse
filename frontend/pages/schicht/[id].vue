@@ -109,6 +109,9 @@ const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
               <span class="meta">{{ data.shift.userName }}<span v-if="data.shift.gruppe"> · {{ data.shift.gruppe }}</span><span v-if="data.shift.registerName"> · {{ data.shift.registerName }}</span></span>
             </h3>
             <div class="summary-list">
+              <div class="l" v-if="data.shift.abrechnungNr != null">
+                <span>Abrechnungs-Nr.</span><span class="v">#{{ data.shift.abrechnungNr }}</span>
+              </div>
               <div class="l"><span>Gestartet</span><span class="v">{{ fmt(data.shift.startedAt) }}</span></div>
               <div class="l"><span>Abgeschlossen</span><span class="v">{{ fmt(data.shift.closedAt) }}</span></div>
               <div class="l"><span>Anfangsbestand</span><span class="v">{{ formatEUR(data.shift.openingCashCents) }}</span></div>

@@ -1,6 +1,7 @@
 package de.hems.kasse.config;
 
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -22,21 +23,27 @@ public class KasseProperties {
     private Cors cors = new Cors();
 
     /** Raw comma-separated "GRUPPE:passwort,GRUPPE:passwort" from KASSE_GROUP_PASSWORDS. */
-    private String groups = "";
+    private String groupPasswords = "";
     /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. */
-    private String admins = "";
+    private String adminUsers = "";
 
     private Epc epc = new Epc();
 
-    /** Lowercase Gruppen-Name → plaintext password. */
-    private Map<String, String> groupPasswords = new LinkedHashMap<>();
-    /** Lowercase username → plaintext password. */
-    private Map<String, String> adminUsers = new LinkedHashMap<>();
+    /**
+     * Parsed views of the two raw lists above. They are deliberately not settable: a settable
+     * {@code Map} field here would share its canonical name with the environment variable that
+     * feeds the raw string (KASSE_GROUP_PASSWORDS → {@code kasse.group-passwords}), and Spring
+     * would then try to bind that string straight onto the map and refuse to start.
+     */
+    @Setter(AccessLevel.NONE)
+    private Map<String, String> passwordsByGroup = new LinkedHashMap<>();
+    @Setter(AccessLevel.NONE)
+    private Map<String, String> passwordsByAdmin = new LinkedHashMap<>();
 
     @PostConstruct
     void parseColonLists() {
-        groupPasswords = parse(groups);
-        adminUsers = parse(admins);
+        passwordsByGroup = parse(groupPasswords);
+        passwordsByAdmin = parse(adminUsers);
     }
 
     private static Map<String, String> parse(String raw) {

@@ -33,13 +33,14 @@ class SmokeTest {
     @Test
     void verkaufLoginSucceedsAndCategoriesReturnSeededData() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"Timo","gruppe":"1","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","abrechnungNr":101,"password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.user.abrechnungNr").value(101))
                 .andExpect(jsonPath("$.user.role").value("VERKAUF"))
                 .andReturn();
         String token = new com.fasterxml.jackson.databind.ObjectMapper()
@@ -56,7 +57,7 @@ class SmokeTest {
     @Test
     void wrongPasswordIs401() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"X","gruppe":"1","password":"nope"}
+                {"role":"VERKAUF","name":"X","gruppe":"1","abrechnungNr":102,"password":"nope"}
                 """;
         mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +89,7 @@ class SmokeTest {
     void minimalShiftEndToEnd_andCsvExport() throws Exception {
         // Verkauf logs in
         String loginBody = """
-                {"role":"VERKAUF","name":"Timo","gruppe":"1","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","abrechnungNr":42,"password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -112,7 +113,8 @@ class SmokeTest {
         mvc.perform(get("/api/shifts/current")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Kasse-Register-Id", register))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.abrechnungNr").value(42));
 
         // Record one BAR sale of 2× 1,50 € = 3,00 €, gave 5,00 €
         String saleBody = """
@@ -164,8 +166,8 @@ class SmokeTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Gruppe;Kassette;Rolle"), mineCsv);
-        assertTrue(mineCsv.contains(";Timo;1;Kassette 1;VERKAUF;"), mineCsv);
+        assertTrue(mineCsv.contains("Schicht-ID;Abrechnung;Verkäufer:in;Gruppe;Kassette;Rolle"), mineCsv);
+        assertTrue(mineCsv.contains(";#42;Timo;1;Kassette 1;VERKAUF;"), mineCsv);
 
         // Admin "all" requires admin role — Verkauf gets 403.
         mvc.perform(get("/api/shifts/export.csv?type=shifts")
@@ -200,7 +202,7 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.discountable").value(false));
 
-        String tok = token(login("VERKAUF", "Timo", "1", "Passw0rd"));
+        String tok = token(login("VERKAUF", "Timo", "2", 43, "Görner"));
 
         // 50 % off 1,50 € would be 0,75 € but the 1,30 € floor caps it.
         mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
@@ -229,12 +231,123 @@ class SmokeTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // ------------------------------------------------------------------
+    // Abrechnungs-Nr. (envelope number entered at login)
+    // ------------------------------------------------------------------
+
+    @Test
+    void verkaufLoginRequiresAUsableAbrechnungNr() throws Exception {
+        // Missing entirely
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Timo", "1", null, "Passw0rd")))
+                .andExpect(status().isBadRequest());
+        // Zero, negative and out-of-range are all refused before a session exists
+        for (int bad : new int[]{0, -1, 1_000_000}) {
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("VERKAUF", "Timo", "1", bad, "Passw0rd")))
+                    .andExpect(status().isBadRequest());
+        }
+        // Garbage in the numeric field is a 400, never a 500
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Timo\",\"gruppe\":\"1\","
+                                + "\"abrechnungNr\":\"zwölf\",\"password\":\"Passw0rd\"}"))
+                .andExpect(status().isBadRequest());
+        // Admins never run an Abrechnung, so they may log in without one
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("ADMIN", "alice", null, null, "adminPW1")))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * The Abrechnung is handed in once. Neither a stale tab nor a fresh login may book
+     * anything else into it — this is the "reload the page after closing" case.
+     */
+    @Test
+    void closedAbrechnungIsNeverReopened() throws Exception {
+        String register = "00000000-0000-0000-0000-000000000501";
+        String tok = token(login("VERKAUF", "Nora", "5", 47, "pw5"));
+
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.abrechnungNr").value(47));
+
+        mvc.perform(post("/api/shifts/current/close").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"countedCashCents\":5000,\"notes\":\"\"}"))
+                .andExpect(status().isOk());
+
+        // Same still-valid token, e.g. a tab that was reloaded after the close:
+        // no new shift is silently opened on the spent envelope.
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + tok)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+
+        // And logging in again with the same envelope is refused right at the form.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nora", "5", 47, "pw5")))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void runningAbrechnungIsSharedWithinTheGroupAndClosedToOthers() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String register = "00000000-0000-0000-0000-000000000501";
+
+        String first = token(login("VERKAUF", "Ada", "3", 44, "pw3"));
+        String shiftId = om.readTree(mvc.perform(get("/api/shifts/current")
+                        .header("Authorization", "Bearer " + first)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .get("id").asText();
+
+        // Same group, same envelope → second cashier joins the running Abrechnung.
+        String second = token(login("VERKAUF", "Ben", "3", 44, "pw3"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + second)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(shiftId));
+
+        // Same group, but someone grabbed the wrong envelope → refused, not silently rebooked.
+        String wrongEnvelope = token(login("VERKAUF", "Cem", "3", 48, "pw3"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + wrongEnvelope)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+
+        // Another group cannot claim an envelope that is already in use.
+        String otherGroup = token(login("VERKAUF", "Dana", "4", 44, "pw4"));
+        mvc.perform(get("/api/shifts/current").header("Authorization", "Bearer " + otherGroup)
+                        .header("X-Kasse-Register-Id", register))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void adminCanFilterShiftsByAbrechnungNr() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        // #999999 was never used, so the filter must come back empty rather than erroring.
+        mvc.perform(get("/api/shifts?abrechnungNr=999999").header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
     private String login(String role, String name, String gruppe, String password) throws Exception {
-        String body = (gruppe == null)
-                ? "{\"role\":\"%s\",\"name\":\"%s\",\"password\":\"%s\"}".formatted(role, name, password)
-                : "{\"role\":\"%s\",\"name\":\"%s\",\"gruppe\":\"%s\",\"password\":\"%s\"}".formatted(role, name, gruppe, password);
-        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+        return login(role, name, gruppe, null, password);
+    }
+
+    private String login(String role, String name, String gruppe, Integer abrechnungNr, String password)
+            throws Exception {
+        return mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(role, name, gruppe, abrechnungNr, password)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
+    private static String loginJson(String role, String name, String gruppe, Integer abrechnungNr, String password) {
+        StringBuilder b = new StringBuilder("{\"role\":\"%s\",\"name\":\"%s\"".formatted(role, name));
+        if (gruppe != null) b.append(",\"gruppe\":\"%s\"".formatted(gruppe));
+        if (abrechnungNr != null) b.append(",\"abrechnungNr\":%d".formatted(abrechnungNr));
+        return b.append(",\"password\":\"%s\"}".formatted(password)).toString();
     }
 
     private static String token(String loginJson) throws Exception {

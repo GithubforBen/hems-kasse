@@ -39,7 +39,7 @@ export const useShiftStore = defineStore('shift', {
       return this.mine
     },
 
-    async fetchAll(filters: { from?: string; to?: string; gruppe?: string; registerId?: string; q?: string } = {}) {
+    async fetchAll(filters: { from?: string; to?: string; gruppe?: string; abrechnungNr?: number; registerId?: string; q?: string } = {}) {
       const api = useApi()
       this.all = await api<ShiftDto[]>('/api/shifts', { query: filters as any })
       return this.all

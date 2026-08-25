@@ -8,9 +8,37 @@ const router = useRouter()
 const role = ref<'VERKAUF' | 'ADMIN'>('VERKAUF')
 const name = ref('')
 const gruppe = ref('')
+/** Kept as a string so a half-typed or invalid entry never becomes a silent 0/NaN. */
+const abrechnungNr = ref('')
 const password = ref('')
 const error = ref<string | null>(null)
 const busy = ref(false)
+
+const MAX_ABRECHNUNG_NR = 999999
+
+/** Whole positive number only — "12a", "1.5", "-3" and "" all come back null. */
+const parsedAbrechnungNr = computed(() => {
+  const raw = abrechnungNr.value.trim()
+  if (!/^\d{1,6}$/.test(raw)) return null
+  const n = Number(raw)
+  return n >= 1 && n <= MAX_ABRECHNUNG_NR ? n : null
+})
+
+/**
+ * Why a session was sent back here. Fixed codes rather than a free-text message, so a
+ * crafted link cannot put arbitrary wording in front of a cashier.
+ */
+const REASONS: Record<string, string> = {
+  abrechnung: 'Diese Abrechnung ist abgeschlossen oder wird an einer anderen Kassette geführt. '
+    + 'Bitte mit der Nummer des nächsten Umschlags neu anmelden.',
+  abgeschlossen: 'Abrechnung abgeschlossen. Für die nächste Schicht bitte mit der Nummer des '
+    + 'nächsten Umschlags anmelden.',
+}
+
+onMounted(() => {
+  const reason = route.query.reason
+  if (typeof reason === 'string' && REASONS[reason]) error.value = REASONS[reason]!
+})
 
 async function submit() {
   if (busy.value) return
@@ -23,6 +51,10 @@ async function submit() {
     error.value = 'Bitte Gruppe eingeben.'
     return
   }
+  if (role.value === 'VERKAUF' && parsedAbrechnungNr.value === null) {
+    error.value = `Bitte die Abrechnungs-Nr. vom Umschlag eingeben (ganze Zahl zwischen 1 und ${MAX_ABRECHNUNG_NR}).`
+    return
+  }
 
   busy.value = true
   error.value = null
@@ -31,13 +63,16 @@ async function submit() {
       role: role.value,
       name: name.value.trim(),
       gruppe: role.value === 'VERKAUF' ? gruppe.value.trim() : undefined,
+      abrechnungNr: role.value === 'VERKAUF' ? parsedAbrechnungNr.value! : undefined,
       password: password.value,
     })
     const next = typeof route.query.next === 'string' ? route.query.next : null
     await router.replace(next && next.startsWith('/') ? next : (auth.user?.role === 'ADMIN' ? '/admin' : '/'))
   } catch (e: any) {
     if (e?.response?.status === 401) error.value = 'Anmeldung fehlgeschlagen. Falsche Zugangsdaten.'
+    else if (e?.response?.status === 409) error.value = e?.data?.message ?? 'Diese Abrechnungs-Nr. ist nicht mehr frei.'
     else if (e?.response?.status === 400) error.value = e?.data?.message ?? 'Ungültige Eingabe.'
+    else if (e?.response?.status === 429) error.value = e?.data?.message ?? 'Zu viele Fehlversuche. Bitte kurz warten.'
     else error.value = 'Server nicht erreichbar.'
   } finally {
     busy.value = false
@@ -74,6 +109,22 @@ async function submit() {
           v-model="gruppe"
           @keydown.enter="submit"
           placeholder="z. B. 1" />
+      </div>
+
+      <div v-if="role === 'VERKAUF'" style="margin-bottom:12px">
+        <label class="label">Abrechnungs-Nr.</label>
+        <input
+          class="input"
+          v-model="abrechnungNr"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="6"
+          @keydown.enter="submit"
+          placeholder="Nummer auf dem Umschlag, z. B. 7" />
+        <div style="font-size:12px;color:var(--ink-3);margin-top:4px">
+          Alle Verkäufe dieser Schicht werden auf diesen Umschlag abgerechnet.
+        </div>
       </div>
 
       <div style="margin-bottom:14px">

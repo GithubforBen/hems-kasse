@@ -33,6 +33,7 @@ function diffClass(d: number | null | undefined): string {
         <tr>
           <th>Abschluss</th>
           <th v-if="showOperator">Wer</th>
+          <th>Abrechnung</th>
           <th class="num">Umsatz</th>
           <th class="num">Bar</th>
           <th class="num">Karte</th>
@@ -48,6 +49,10 @@ function diffClass(d: number | null | undefined): string {
             <span style="font-weight:550">{{ s.userName }}</span>
             <span v-if="s.gruppe" style="color:var(--ink-3);font-size:12px;margin-left:6px">{{ s.gruppe }}</span>
             <span v-if="s.registerName" style="color:var(--ink-3);font-size:12px;margin-left:6px">· {{ s.registerName }}</span>
+          </td>
+          <td>
+            <span v-if="s.abrechnungNr != null" class="abrechnung-badge">#{{ s.abrechnungNr }}</span>
+            <span v-else style="color:var(--ink-3)">–</span>
           </td>
           <td class="num">{{ formatEUR(s.totalSalesCents ?? 0) }}</td>
           <td class="num">{{ formatEUR(s.cashSalesCents ?? 0) }}</td>

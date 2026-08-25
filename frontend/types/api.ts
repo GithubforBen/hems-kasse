@@ -3,6 +3,8 @@ export type Role = 'VERKAUF' | 'ADMIN'
 export interface AuthUser {
   name: string
   gruppe: string | null
+  /** Nummer des Geldumschlags, auf den diese Anmeldung abrechnet. */
+  abrechnungNr: number | null
   role: Role
 }
 
@@ -69,6 +71,7 @@ export interface ShiftDto {
   id: string
   userName: string
   gruppe: string | null
+  abrechnungNr: number | null
   role: Role
   registerId: string | null
   registerName: string | null

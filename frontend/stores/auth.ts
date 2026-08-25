@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
       u.value = this.user
     },
 
-    async login(body: { role: 'VERKAUF' | 'ADMIN'; name: string; gruppe?: string; password: string }) {
+    async login(body: { role: 'VERKAUF' | 'ADMIN'; name: string; gruppe?: string; abrechnungNr?: number; password: string }) {
       const api = useApi()
       const res = await api<LoginResponse>('/api/auth/login', { method: 'POST', body })
       this.token = res.token

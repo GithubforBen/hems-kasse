@@ -12,8 +12,12 @@ const notes = ref('')
 const countOpen = ref(false)
 
 onMounted(async () => {
-  if (!shift.current) await shift.fetchCurrent()
-  if (sales.sales.length === 0) await sales.fetch()
+  // A 409 here means this Abrechnung is no longer bookable; useApi already routes back to the
+  // login form, so swallow the rejection rather than letting it surface as a page error.
+  try {
+    if (!shift.current) await shift.fetchCurrent()
+    if (sales.sales.length === 0) await sales.fetch()
+  } catch {}
 })
 
 const countedCents = computed(() =>
@@ -66,20 +70,34 @@ const byCashier = computed(() => {
 })
 
 const toast = useToastStore()
+const auth = useAuthStore()
+const closing = ref(false)
+
 async function closeShift() {
+  if (closing.value) return
   const totalSales = sales.totalCents
+  const nr = auth.user?.abrechnungNr
   const ok = confirm(
-    `Schicht abschließen?\n\n` +
+    `Abrechnung${nr != null ? ` #${nr}` : ''} abschließen?\n\n` +
     `Umsatz: ${formatEUR(totalSales)}\n` +
     `Differenz: ${diffCents.value >= 0 ? '+' : ''}${formatEUR(diffCents.value)}\n\n` +
-    `Die Verkaufsdaten werden archiviert und die Kasse zurückgesetzt.`
+    `Die Verkaufsdaten werden archiviert${nr != null ? ` und auf Umschlag #${nr} abgerechnet` : ''}. ` +
+    `Für die nächste Schicht wird die Nummer des nächsten Umschlags gebraucht.`
   )
   if (!ok) return
-  await shift.close(countedCents.value, notes.value)
-  toast.show('Schicht abgeschlossen · Bericht archiviert')
+  closing.value = true
+  try {
+    await shift.close(countedCents.value, notes.value)
+  } catch (e) {
+    closing.value = false
+    toast.show('Abschluss fehlgeschlagen – bitte erneut versuchen')
+    throw e
+  }
   sales.clear()
-  // open a fresh shift
-  await shift.fetchCurrent()
+  // The envelope is sealed: this session can no longer book anything, so end it here rather
+  // than reopening a shift on a spent number. The next shift logs in with the next envelope.
+  auth.clear()
+  await navigateTo({ path: '/login', query: { reason: 'abgeschlossen' } })
 }
 
 // reverse-order list, large denoms on top

@@ -1,6 +1,7 @@
 package de.hems.kasse.auth;
 
 import de.hems.kasse.config.KasseProperties;
+import de.hems.kasse.shift.ShiftService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,23 +22,27 @@ public class AuthController {
 
     private final JwtService jwt;
     private final LoginAttemptService attempts;
+    private final ShiftService shifts;
     private final Map<String, String> groupPasswords;
     private final Map<String, String> adminUsers;
 
-    public AuthController(JwtService jwt, LoginAttemptService attempts, KasseProperties props) {
+    public AuthController(JwtService jwt, LoginAttemptService attempts, ShiftService shifts,
+                          KasseProperties props) {
         this.jwt = jwt;
         this.attempts = attempts;
-        this.groupPasswords = props.getGroupPasswords();
-        this.adminUsers = props.getAdminUsers();
+        this.shifts = shifts;
+        this.groupPasswords = props.getPasswordsByGroup();
+        this.adminUsers = props.getPasswordsByAdmin();
     }
 
     public record LoginRequest(
             @NotBlank @Size(max = 40) String role,
             @NotBlank @Size(max = 120) String name,
             @Size(max = 120) String gruppe,
+            Integer abrechnungNr,
             @NotBlank @Size(max = 200) String password) {}
 
-    public record UserDto(String name, String gruppe, String role) {}
+    public record UserDto(String name, String gruppe, Integer abrechnungNr, String role) {}
 
     public record LoginResponse(String token, UserDto user) {}
 
@@ -74,8 +79,11 @@ public class AuthController {
                     throw new ResponseStatusException(UNAUTHORIZED, "Falsches Gruppenpasswort");
                 }
                 attempts.reset(targetKey);
-                KassePrincipal p = KassePrincipal.verkauf(name, gruppe);
-                yield new LoginResponse(jwt.issue(p), new UserDto(name, gruppe, "VERKAUF"));
+                // Refuse a spent envelope here, while the cashier is still looking at the form —
+                // failing later, once a session exists, is far harder to recover from.
+                shifts.assertUsable(req.abrechnungNr());
+                KassePrincipal p = KassePrincipal.verkauf(name, gruppe, req.abrechnungNr());
+                yield new LoginResponse(jwt.issue(p), new UserDto(name, gruppe, req.abrechnungNr(), "VERKAUF"));
             }
             case ADMIN -> {
                 String expected = adminUsers.get(name.toLowerCase(Locale.ROOT));
@@ -86,7 +94,7 @@ public class AuthController {
                 }
                 attempts.reset(targetKey);
                 KassePrincipal p = KassePrincipal.admin(name);
-                yield new LoginResponse(jwt.issue(p), new UserDto(name, null, "ADMIN"));
+                yield new LoginResponse(jwt.issue(p), new UserDto(name, null, null, "ADMIN"));
             }
         };
     }
@@ -108,7 +116,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDto> me(@AuthenticationPrincipal KassePrincipal p) {
         if (p == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(new UserDto(p.name(), p.gruppe(), p.role().name()));
+        return ResponseEntity.ok(new UserDto(p.name(), p.gruppe(), p.abrechnungNr(), p.role().name()));
     }
 
     private static boolean constantTimeEquals(String a, String b) {
