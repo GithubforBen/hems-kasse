@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const shift = useShiftStore()
 const register = useRegisterStore()
-const filters = reactive({ q: '', klasse: '', registerId: '' })
+const filters = reactive({ q: '', gruppe: '', registerId: '' })
 
 async function refreshHistory() {
   await shift.fetchAll({
     q: filters.q || undefined,
-    klasse: filters.klasse || undefined,
+    gruppe: filters.gruppe || undefined,
     registerId: filters.registerId || undefined,
   })
 }
@@ -75,8 +75,8 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
               <input
                 class="input"
                 style="max-width:160px"
-                v-model="filters.klasse"
-                placeholder="Klasse, z. B. BG12e"
+                v-model="filters.gruppe"
+                placeholder="Gruppe, z. B. 1"
                 @keydown.enter="refreshHistory" />
               <select class="input" style="max-width:170px" v-model="filters.registerId" @change="refreshHistory">
                 <option value="">Alle Kassetten</option>
@@ -90,7 +90,7 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
                 path="/api/shifts/export.csv"
                 :types="['shifts', 'items', 'products', 'sales']"
                 :filters="{
-                  klasse: filters.klasse || undefined,
+                  gruppe: filters.gruppe || undefined,
                   registerId: filters.registerId || undefined,
                   q: filters.q || undefined,
                 }" />

@@ -5,7 +5,7 @@ Ein Kassensystem für Schulkuchen-Verkäufe — basierend auf dem Claude-Design-
 - **Frontend:** Nuxt 3 (Vue 3, TypeScript, Pinia)
 - **Backend:** Spring Boot 3.3, Java 21, Spring Security + JWT, JPA, Flyway
 - **Datenbank:** PostgreSQL (H2 nur für Tests)
-- **Login:** Klassen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — beide aus `.env`
+- **Login:** Gruppen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — beide aus `.env`
 - **Karte = SEPA-Überweisung per EPC-QR (Girocode)** — der Backend rendert das PNG selbst (ZXing)
 - **Schichthistorie:** Jede Person sieht eigene Abschlüsse, Admin sieht alle (mit Filtern)
 
@@ -29,7 +29,7 @@ hems-kasse/
 
 ```bash
 cp .env.example .env
-# .env bearbeiten: KASSE_CLASS_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
+# .env bearbeiten: KASSE_GROUPS, KASSE_ADMINS, KASSE_JWT_SECRET,
 #                   KASSE_EPC_NAME / KASSE_EPC_IBAN, optional POSTGRES_PASSWORD …
 
 docker compose up --build
@@ -63,7 +63,7 @@ Mehrere Hosts? Setze `NUXT_PUBLIC_API_BASE` und `KASSE_CORS_ORIGINS` in der `.en
 ```bash
 cd backend
 cp .env.example .env
-# .env anpassen: KASSE_CLASS_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
+# .env anpassen: KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
 
 # Postgres bereitstellen (lokal)
 createdb kasse
@@ -77,8 +77,8 @@ Flyway erzeugt die Tabellen automatisch und legt die Standard-Kategorien (Kuchen
 ### Konfiguration (`.env`)
 
 ```
-# Klassen-Passwörter (Verkauf): KLASSE:passwort, KLASSE:passwort
-KASSE_CLASS_PASSWORDS=BG12e:Passw0rd,BG12f:Görner
+# Gruppen-Passwörter (Verkauf): GRUPPE:passwort, GRUPPE:passwort
+KASSE_GROUP_PASSWORDS=1:Passw0rd,2:Görner
 
 # Admin-Logins: user:passwort, user:passwort
 KASSE_ADMIN_USERS=alice:adminPW1,bob:adminPW2
@@ -131,7 +131,7 @@ Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statische
 | POST | `/api/shifts/current/close` | jeder eingeloggt | Schicht abschließen |
 | GET  | `/api/shifts/mine` | jeder eingeloggt | eigene archivierte Schichten |
 | GET  | `/api/shifts/{id}` | Besitzer ODER ADMIN | Schichtdetails |
-| GET  | `/api/shifts?from&to&klasse&q` | ADMIN | alle Schichten |
+| GET  | `/api/shifts?from&to&gruppe&q` | ADMIN | alle Schichten |
 | GET  | `/api/sales` | jeder eingeloggt | Verkäufe der aktuellen Schicht |
 | POST | `/api/sales` | jeder eingeloggt | Verkauf buchen (Server prüft Totals) |
 | GET  | `/api/me/pref`, PUT | jeder eingeloggt | Theme-Pref |
@@ -139,7 +139,7 @@ Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statische
 | GET  | `/api/payments/epc-payload?amountCents=…` | jeder eingeloggt | Roher EPC-Text (Debug) |
 | GET  | `/api/shifts/{id}/export.csv?type=…` | Besitzer ODER ADMIN | CSV einer einzelnen Schicht |
 | GET  | `/api/shifts/mine/export.csv?type=…` | jeder eingeloggt | CSV aller eigenen Schichten |
-| GET  | `/api/shifts/export.csv?type=…&from=&to=&klasse=&q=` | ADMIN | CSV aller Schichten (gefiltert) |
+| GET  | `/api/shifts/export.csv?type=…&from=&to=&gruppe=&q=` | ADMIN | CSV aller Schichten (gefiltert) |
 
 ### CSV-Export-Typen (`?type=…`)
 
@@ -147,7 +147,7 @@ Vier vordefinierte Berichte, alle in Excel-freundlichem Format (UTF-8 mit BOM, `
 
 | Typ | Inhalt |
 | --- | --- |
-| `shifts` (Default für `mine`/`export.csv`) | Eine Zeile pro Schicht: Datum, Person, Klasse, Anfangsbestand, Umsatz Bar/Karte/Gesamt, **Soll/Ist/Diff**, Bons, Artikel, Anmerkungen |
+| `shifts` (Default für `mine`/`export.csv`) | Eine Zeile pro Schicht: Datum, Person, Gruppe, Anfangsbestand, Umsatz Bar/Karte/Gesamt, **Soll/Ist/Diff**, Bons, Artikel, Anmerkungen |
 | `sales` | Eine Zeile pro Bon: Datum, Uhrzeit, Bon-Nr., Zahlungsart, Summe, Gegeben, Rückgeld, Artikel-Liste |
 | `items` (Default für `{id}`) | Eine Zeile pro Kassenposition (am detailliertesten): Produkt, Menge, Einzelpreis, Zeilensumme |
 | `products` | Aggregat je Produkt: Rang, Menge, Anteil%, Umsatz, Anteil%, Ø-Preis, Bon-Anzahl — beantwortet *„Was wurde verkauft?"* |
@@ -168,7 +168,7 @@ cd backend && mvn test
 # Login + Katalog
 TOKEN=$(curl -s -XPOST localhost:8080/api/auth/login \
   -H content-type:application/json \
-  -d '{"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}' \
+  -d '{"role":"VERKAUF","name":"Timo","gruppe":"1","password":"Passw0rd"}' \
   | jq -r .token)
 curl -s localhost:8080/api/categories -H "Authorization: Bearer $TOKEN" | jq .
 

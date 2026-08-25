@@ -21,23 +21,23 @@ public class AuthController {
 
     private final JwtService jwt;
     private final LoginAttemptService attempts;
-    private final Map<String, String> classPasswords;
+    private final Map<String, String> groupPasswords;
     private final Map<String, String> adminUsers;
 
     public AuthController(JwtService jwt, LoginAttemptService attempts, KasseProperties props) {
         this.jwt = jwt;
         this.attempts = attempts;
-        this.classPasswords = props.getClassPasswords();
+        this.groupPasswords = props.getGroupPasswords();
         this.adminUsers = props.getAdminUsers();
     }
 
     public record LoginRequest(
             @NotBlank @Size(max = 40) String role,
             @NotBlank @Size(max = 120) String name,
-            @Size(max = 120) String klasse,
+            @Size(max = 120) String gruppe,
             @NotBlank @Size(max = 200) String password) {}
 
-    public record UserDto(String name, String klasse, String role) {}
+    public record UserDto(String name, String gruppe, String role) {}
 
     public record LoginResponse(String token, UserDto user) {}
 
@@ -52,7 +52,7 @@ public class AuthController {
 
         String name = req.name().trim();
         String targetKey = switch (role) {
-            case VERKAUF -> KassePrincipal.subjectKey(role, name, req.klasse());
+            case VERKAUF -> KassePrincipal.subjectKey(role, name, req.gruppe());
             case ADMIN -> KassePrincipal.subjectKey(role, name, null);
         };
         String ipKey = "ip:" + clientIp(http);
@@ -63,19 +63,19 @@ public class AuthController {
 
         return switch (role) {
             case VERKAUF -> {
-                if (req.klasse() == null || req.klasse().isBlank()) {
-                    throw new ResponseStatusException(BAD_REQUEST, "Klasse fehlt");
+                if (req.gruppe() == null || req.gruppe().isBlank()) {
+                    throw new ResponseStatusException(BAD_REQUEST, "Gruppe fehlt");
                 }
-                String klasse = req.klasse().trim();
-                String expected = classPasswords.get(klasse.toLowerCase(Locale.ROOT));
+                String gruppe = req.gruppe().trim();
+                String expected = groupPasswords.get(gruppe.toLowerCase(Locale.ROOT));
                 if (expected == null || !constantTimeEquals(expected, req.password())) {
                     attempts.recordFailure(targetKey);
                     attempts.recordFailure(ipKey);
-                    throw new ResponseStatusException(UNAUTHORIZED, "Falsches Klassenpasswort");
+                    throw new ResponseStatusException(UNAUTHORIZED, "Falsches Gruppenpasswort");
                 }
                 attempts.reset(targetKey);
-                KassePrincipal p = KassePrincipal.verkauf(name, klasse);
-                yield new LoginResponse(jwt.issue(p), new UserDto(name, klasse, "VERKAUF"));
+                KassePrincipal p = KassePrincipal.verkauf(name, gruppe);
+                yield new LoginResponse(jwt.issue(p), new UserDto(name, gruppe, "VERKAUF"));
             }
             case ADMIN -> {
                 String expected = adminUsers.get(name.toLowerCase(Locale.ROOT));
@@ -108,7 +108,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDto> me(@AuthenticationPrincipal KassePrincipal p) {
         if (p == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(new UserDto(p.name(), p.klasse(), p.role().name()));
+        return ResponseEntity.ok(new UserDto(p.name(), p.gruppe(), p.role().name()));
     }
 
     private static boolean constantTimeEquals(String a, String b) {

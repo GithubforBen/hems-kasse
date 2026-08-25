@@ -30,7 +30,7 @@ public class ExportService {
     /** Per-shift summary table — {@code shifts.csv}. */
     public String shiftsCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse", "Kassette", "Rolle",
+                "Schicht-ID", "Verkäufer:in", "Gruppe", "Kassette", "Rolle",
                 "Gestartet", "Abgeschlossen",
                 "Anfangsbestand (€)",
                 "Umsatz Bar (€)", "Umsatz Karte (€)", "Umsatz PayPal (€)", "Umsatz gesamt (€)",
@@ -41,7 +41,7 @@ public class ExportService {
             w.row(
                     s.getId(),
                     s.getUserName(),
-                    nullToEmpty(s.getKlasse()),
+                    nullToEmpty(s.getGruppe()),
                     nullToEmpty(s.getRegisterName()),
                     s.getRole(),
                     dateTime(s.getStartedAt()),
@@ -64,7 +64,7 @@ public class ExportService {
     /** One row per sale receipt — {@code verkaeufe.csv}. */
     public String salesCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse",
+                "Schicht-ID", "Verkäufer:in", "Gruppe",
                 "Datum", "Uhrzeit",
                 "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Summe (€)", "Gegeben (€)", "Rückgeld (€)",
@@ -82,7 +82,7 @@ public class ExportService {
                 w.row(
                         s.getId(),
                         s.getUserName(),
-                        nullToEmpty(s.getKlasse()),
+                        nullToEmpty(s.getGruppe()),
                         date(x.getTs()),
                         time(x.getTs()),
                         bonNr,
@@ -101,7 +101,7 @@ public class ExportService {
     /** One row per line item — {@code artikel.csv}, most granular. */
     public String itemsCsv(List<Shift> shifts) {
         var w = new CsvWriter().row(
-                "Schicht-ID", "Verkäufer:in", "Klasse",
+                "Schicht-ID", "Verkäufer:in", "Gruppe",
                 "Datum", "Uhrzeit",
                 "Bon-Nr.", "Transaktions-ID", "Zahlungsart",
                 "Produkt", "Menge", "Einzelpreis (€)", "Zeilensumme (€)");
@@ -114,7 +114,7 @@ public class ExportService {
                     w.row(
                             s.getId(),
                             s.getUserName(),
-                            nullToEmpty(s.getKlasse()),
+                            nullToEmpty(s.getGruppe()),
                             date(x.getTs()),
                             time(x.getTs()),
                             bonNr,

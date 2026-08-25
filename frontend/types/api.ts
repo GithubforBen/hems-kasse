@@ -2,7 +2,7 @@ export type Role = 'VERKAUF' | 'ADMIN'
 
 export interface AuthUser {
   name: string
-  klasse: string | null
+  gruppe: string | null
   role: Role
 }
 
@@ -68,7 +68,7 @@ export interface SaleDto {
 export interface ShiftDto {
   id: string
   userName: string
-  klasse: string | null
+  gruppe: string | null
   role: Role
   registerId: string | null
   registerName: string | null

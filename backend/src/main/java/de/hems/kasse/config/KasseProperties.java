@@ -21,21 +21,21 @@ public class KasseProperties {
     private Jwt jwt = new Jwt();
     private Cors cors = new Cors();
 
-    /** Raw comma-separated "KLASSE:passwort,KLASSE:passwort" from KASSE_CLASS_PASSWORDS. */
-    private String classes = "";
+    /** Raw comma-separated "GRUPPE:passwort,GRUPPE:passwort" from KASSE_GROUP_PASSWORDS. */
+    private String groups = "";
     /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. */
     private String admins = "";
 
     private Epc epc = new Epc();
 
-    /** Lowercase klasse name → plaintext password. */
-    private Map<String, String> classPasswords = new LinkedHashMap<>();
+    /** Lowercase Gruppen-Name → plaintext password. */
+    private Map<String, String> groupPasswords = new LinkedHashMap<>();
     /** Lowercase username → plaintext password. */
     private Map<String, String> adminUsers = new LinkedHashMap<>();
 
     @PostConstruct
     void parseColonLists() {
-        classPasswords = parse(classes);
+        groupPasswords = parse(groups);
         adminUsers = parse(admins);
     }
 

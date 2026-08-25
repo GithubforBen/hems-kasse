@@ -87,7 +87,7 @@ public class ShiftService {
                 .subjectKey(p.subjectKey())
                 .userName(p.name())
                 .role(p.role().name())
-                .klasse(p.klasse())
+                .gruppe(p.gruppe())
                 .registerId(register != null ? register.getId() : null)
                 .registerName(register != null ? register.getName() : null)
                 .openingCashCents(5000) // matches prototype default 50,00 €

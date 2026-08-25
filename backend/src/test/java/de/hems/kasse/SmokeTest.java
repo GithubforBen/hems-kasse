@@ -33,7 +33,7 @@ class SmokeTest {
     @Test
     void verkaufLoginSucceedsAndCategoriesReturnSeededData() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +56,7 @@ class SmokeTest {
     @Test
     void wrongPasswordIs401() throws Exception {
         String body = """
-                {"role":"VERKAUF","name":"X","klasse":"BG12e","password":"nope"}
+                {"role":"VERKAUF","name":"X","gruppe":"1","password":"nope"}
                 """;
         mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +88,7 @@ class SmokeTest {
     void minimalShiftEndToEnd_andCsvExport() throws Exception {
         // Verkauf logs in
         String loginBody = """
-                {"role":"VERKAUF","name":"Timo","klasse":"BG12e","password":"Passw0rd"}
+                {"role":"VERKAUF","name":"Timo","gruppe":"1","password":"Passw0rd"}
                 """;
         var login = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,8 +164,8 @@ class SmokeTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Klasse;Kassette;Rolle"), mineCsv);
-        assertTrue(mineCsv.contains(";Timo;BG12e;Kassette 1;VERKAUF;"), mineCsv);
+        assertTrue(mineCsv.contains("Schicht-ID;Verkäufer:in;Gruppe;Kassette;Rolle"), mineCsv);
+        assertTrue(mineCsv.contains(";Timo;1;Kassette 1;VERKAUF;"), mineCsv);
 
         // Admin "all" requires admin role — Verkauf gets 403.
         mvc.perform(get("/api/shifts/export.csv?type=shifts")
@@ -200,7 +200,7 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.discountable").value(false));
 
-        String tok = token(login("VERKAUF", "Timo", "BG12e", "Passw0rd"));
+        String tok = token(login("VERKAUF", "Timo", "1", "Passw0rd"));
 
         // 50 % off 1,50 € would be 0,75 € but the 1,30 € floor caps it.
         mvc.perform(post("/api/sales").header("Authorization", "Bearer " + tok)
@@ -229,10 +229,10 @@ class SmokeTest {
                 .andExpect(status().isBadRequest());
     }
 
-    private String login(String role, String name, String klasse, String password) throws Exception {
-        String body = (klasse == null)
+    private String login(String role, String name, String gruppe, String password) throws Exception {
+        String body = (gruppe == null)
                 ? "{\"role\":\"%s\",\"name\":\"%s\",\"password\":\"%s\"}".formatted(role, name, password)
-                : "{\"role\":\"%s\",\"name\":\"%s\",\"klasse\":\"%s\",\"password\":\"%s\"}".formatted(role, name, klasse, password);
+                : "{\"role\":\"%s\",\"name\":\"%s\",\"gruppe\":\"%s\",\"password\":\"%s\"}".formatted(role, name, gruppe, password);
         return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     }

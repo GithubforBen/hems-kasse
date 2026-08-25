@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
   path: string
   /** Which report types to offer. */
   types?: ReportType[]
-  /** Optional query params (date range, klasse, q) forwarded to the backend. */
+  /** Optional query params (date range, gruppe, q) forwarded to the backend. */
   filters?: Record<string, any>
   /** Optional smaller layout for inline placement. */
   compact?: boolean

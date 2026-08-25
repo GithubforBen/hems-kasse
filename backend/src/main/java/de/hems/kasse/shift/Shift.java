@@ -27,7 +27,7 @@ public class Shift {
     private String role; // VERKAUF | ADMIN
 
     @Column(length = 40)
-    private String klasse;
+    private String gruppe;
 
     @Column(name = "register_id")
     private UUID registerId;

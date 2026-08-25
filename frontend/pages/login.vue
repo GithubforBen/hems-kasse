@@ -7,7 +7,7 @@ const router = useRouter()
 
 const role = ref<'VERKAUF' | 'ADMIN'>('VERKAUF')
 const name = ref('')
-const klasse = ref('')
+const gruppe = ref('')
 const password = ref('')
 const error = ref<string | null>(null)
 const busy = ref(false)
@@ -19,8 +19,8 @@ async function submit() {
     error.value = 'Bitte Passwort eingeben.'
     return
   }
-  if (role.value === 'VERKAUF' && !klasse.value.trim()) {
-    error.value = 'Bitte Klasse eingeben.'
+  if (role.value === 'VERKAUF' && !gruppe.value.trim()) {
+    error.value = 'Bitte Gruppe eingeben.'
     return
   }
 
@@ -30,7 +30,7 @@ async function submit() {
     await auth.login({
       role: role.value,
       name: name.value.trim(),
-      klasse: role.value === 'VERKAUF' ? klasse.value.trim() : undefined,
+      gruppe: role.value === 'VERKAUF' ? gruppe.value.trim() : undefined,
       password: password.value,
     })
     const next = typeof route.query.next === 'string' ? route.query.next : null
@@ -68,12 +68,12 @@ async function submit() {
       </div>
 
       <div v-if="role === 'VERKAUF'" style="margin-bottom:12px">
-        <label class="label">Klasse</label>
+        <label class="label">Gruppe</label>
         <input
           class="input"
-          v-model="klasse"
+          v-model="gruppe"
           @keydown.enter="submit"
-          placeholder="z. B. BG12e" />
+          placeholder="z. B. 1" />
       </div>
 
       <div style="margin-bottom:14px">
@@ -84,7 +84,7 @@ async function submit() {
           autocomplete="current-password"
           v-model="password"
           @keydown.enter="submit"
-          :placeholder="role === 'VERKAUF' ? 'Klassenpasswort' : 'Admin-Passwort'" />
+          :placeholder="role === 'VERKAUF' ? 'Gruppenpasswort' : 'Admin-Passwort'" />
       </div>
 
       <div>

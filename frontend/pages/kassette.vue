@@ -36,7 +36,7 @@ async function pick(id: string) {
         <div class="brand-mark">K</div>
         <div class="brand-text">
           <div class="t1">Kassette wählen</div>
-          <div class="t2">{{ auth.user?.name }} · {{ auth.user?.klasse }}</div>
+          <div class="t2">{{ auth.user?.name }} · {{ auth.user?.gruppe }}</div>
         </div>
       </div>
 

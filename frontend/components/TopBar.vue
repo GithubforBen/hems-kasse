@@ -66,7 +66,7 @@ async function changeRegister() {
       <div class="user-pill" v-if="auth.user">
         <div class="avatar">{{ (auth.user.name || '?')[0]!.toUpperCase() }}</div>
         <span style="font-size:13px;font-weight:550;color:var(--ink)">{{ auth.user.name }}</span>
-        <span v-if="auth.user.klasse" style="color:var(--ink-3);font-size:12px">{{ auth.user.klasse }}</span>
+        <span v-if="auth.user.gruppe" style="color:var(--ink-3);font-size:12px">{{ auth.user.gruppe }}</span>
         <template v-if="auth.user.role === 'VERKAUF' && register.selected">
           <span style="color:var(--ink-3);font-size:12px">·</span>
           <button class="btn ghost register-switch-btn" @click="changeRegister" title="Kassette wechseln" style="padding:2px 8px;font-size:12px;gap:4px">

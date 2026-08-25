@@ -106,7 +106,7 @@ const exportPath = computed(() => `/api/shifts/${route.params.id}/export.csv`)
           <div class="card-box">
             <h3>
               <span>Schicht</span>
-              <span class="meta">{{ data.shift.userName }}<span v-if="data.shift.klasse"> · {{ data.shift.klasse }}</span><span v-if="data.shift.registerName"> · {{ data.shift.registerName }}</span></span>
+              <span class="meta">{{ data.shift.userName }}<span v-if="data.shift.gruppe"> · {{ data.shift.gruppe }}</span><span v-if="data.shift.registerName"> · {{ data.shift.registerName }}</span></span>
             </h3>
             <div class="summary-list">
               <div class="l"><span>Gestartet</span><span class="v">{{ fmt(data.shift.startedAt) }}</span></div>

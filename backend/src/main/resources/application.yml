@@ -30,7 +30,7 @@ kasse:
     ttl-hours: ${KASSE_JWT_TTL_HOURS:12}
   cors:
     origins: ${KASSE_CORS_ORIGINS:http://localhost:3000}
-  classes: ${KASSE_CLASS_PASSWORDS:}
+  groups: ${KASSE_GROUP_PASSWORDS:}
   admins: ${KASSE_ADMIN_USERS:}
   epc:
     name: ${KASSE_EPC_NAME:}

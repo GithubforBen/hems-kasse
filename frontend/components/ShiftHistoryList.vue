@@ -4,7 +4,7 @@ import type { ShiftDto } from '~/types/api'
 
 const props = defineProps<{
   shifts: ShiftDto[]
-  showOperator?: boolean // include the Name + Klasse columns (Admin "all" view)
+  showOperator?: boolean // include the Name + Gruppe columns (Admin "all" view)
   emptyText?: string
 }>()
 
@@ -46,7 +46,7 @@ function diffClass(d: number | null | undefined): string {
           <td>{{ fmtDate(s.closedAt) }}</td>
           <td v-if="showOperator">
             <span style="font-weight:550">{{ s.userName }}</span>
-            <span v-if="s.klasse" style="color:var(--ink-3);font-size:12px;margin-left:6px">{{ s.klasse }}</span>
+            <span v-if="s.gruppe" style="color:var(--ink-3);font-size:12px;margin-left:6px">{{ s.gruppe }}</span>
             <span v-if="s.registerName" style="color:var(--ink-3);font-size:12px;margin-left:6px">· {{ s.registerName }}</span>
           </td>
           <td class="num">{{ formatEUR(s.totalSalesCents ?? 0) }}</td>

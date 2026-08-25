@@ -56,7 +56,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(p.name())
                 .claim("role", p.role().name())
-                .claim("klasse", p.klasse())
+                .claim("gruppe", p.gruppe())
                 .claim("sk", p.subjectKey())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
@@ -69,10 +69,10 @@ public class JwtService {
             Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
             Role role = Role.valueOf(String.valueOf(claims.get("role")));
             String name = claims.getSubject();
-            String klasse = claims.get("klasse", String.class);
+            String gruppe = claims.get("gruppe", String.class);
             String sk = claims.get("sk", String.class);
-            if (sk == null) sk = KassePrincipal.subjectKey(role, name, klasse);
-            return new KassePrincipal(role, name, klasse, sk);
+            if (sk == null) sk = KassePrincipal.subjectKey(role, name, gruppe);
+            return new KassePrincipal(role, name, gruppe, sk);
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

@@ -44,7 +44,7 @@ public class ShiftController {
     }
 
     public record ShiftDto(
-            UUID id, String userName, String klasse, String role,
+            UUID id, String userName, String gruppe, String role,
             UUID registerId, String registerName,
             Instant startedAt, Instant closedAt,
             int openingCashCents,
@@ -54,7 +54,7 @@ public class ShiftController {
             String notes
     ) {
         public static ShiftDto of(Shift s) {
-            return new ShiftDto(s.getId(), s.getUserName(), s.getKlasse(), s.getRole(),
+            return new ShiftDto(s.getId(), s.getUserName(), s.getGruppe(), s.getRole(),
                     s.getRegisterId(), s.getRegisterName(),
                     s.getStartedAt(), s.getClosedAt(),
                     s.getOpeningCashCents(),
@@ -108,13 +108,13 @@ public class ShiftController {
     public List<ShiftDto> all(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-            @RequestParam(required = false) String klasse,
+            @RequestParam(required = false) String gruppe,
             @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         return shifts.searchClosed(
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
-                klasse == null || klasse.isBlank() ? null : klasse,
+                gruppe == null || gruppe.isBlank() ? null : gruppe,
                 registerId,
                 escapeLike(q))
                 .stream().map(ShiftDto::of).toList();
@@ -163,21 +163,21 @@ public class ShiftController {
         return csv(body, "meine-schichten-" + t.slug() + "-" + LocalDate.now(ZoneOffset.UTC) + ".csv");
     }
 
-    /** All closed shifts (admin), filterable by date range / klasse / name. */
+    /** All closed shifts (admin), filterable by date range / gruppe / name. */
     @GetMapping("/export.csv")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportAll(
             @RequestParam(defaultValue = "shifts") String type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-            @RequestParam(required = false) String klasse,
+            @RequestParam(required = false) String gruppe,
             @RequestParam(required = false) UUID registerId,
             @RequestParam(required = false) String q) {
         ExportType t = parseType(type);
         var list = shifts.searchClosed(
                 from != null ? from : Instant.EPOCH,
                 to   != null ? to   : Instant.now().plus(36500, ChronoUnit.DAYS),
-                klasse == null || klasse.isBlank() ? null : klasse,
+                gruppe == null || gruppe.isBlank() ? null : gruppe,
                 registerId,
                 escapeLike(q));
         String body = exports.render(t, list);
