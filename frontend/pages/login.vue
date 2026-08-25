@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { readLoginPrefill } from '~/utils/loginLink'
+
 definePageMeta({ layout: false })
 
 const auth = useAuthStore()
@@ -35,10 +37,28 @@ const REASONS: Record<string, string> = {
     + 'nächsten Umschlags anmelden.',
 }
 
+/** Scanned from a Passwort-Zettel: fills in role, Gruppe and password. */
+const fromSlip = ref(false)
+
 onMounted(() => {
   const reason = route.query.reason
   if (typeof reason === 'string' && REASONS[reason]) error.value = REASONS[reason]!
+  applyPrefill()
 })
+
+function applyPrefill() {
+  const prefill = readLoginPrefill(window.location.hash)
+  if (!prefill) return
+  role.value = prefill.r
+  password.value = prefill.p
+  if (prefill.r === 'VERKAUF') gruppe.value = prefill.n
+  else name.value = prefill.n
+  fromSlip.value = true
+  // Keep the password out of the address bar, the tab title and any link the user might copy.
+  history.replaceState(null, '', window.location.pathname + window.location.search)
+  // Everything except who is standing at the till is filled in now.
+  nextTick(() => document.getElementById('login-name')?.focus())
+}
 
 async function submit() {
   if (busy.value) return
@@ -91,9 +111,14 @@ async function submit() {
         </div>
       </div>
 
+      <div v-if="fromSlip" class="slip-hint">
+        📄 Vom Passwort-Zettel übernommen. Bitte nur noch Namen und Abrechnungs-Nr. eintragen.
+      </div>
+
       <div style="margin-bottom:12px">
         <label class="label">Name</label>
         <input
+          id="login-name"
           class="input"
           autofocus
           autocomplete="name"

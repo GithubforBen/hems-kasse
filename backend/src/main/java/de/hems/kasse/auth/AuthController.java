@@ -1,6 +1,7 @@
 package de.hems.kasse.auth;
 
-import de.hems.kasse.config.KasseProperties;
+import de.hems.kasse.accounts.Account;
+import de.hems.kasse.accounts.AccountService;
 import de.hems.kasse.shift.ShiftService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
-import java.util.Map;
 
 import static org.springframework.http.HttpStatus.*;
 
@@ -23,16 +23,14 @@ public class AuthController {
     private final JwtService jwt;
     private final LoginAttemptService attempts;
     private final ShiftService shifts;
-    private final Map<String, String> groupPasswords;
-    private final Map<String, String> adminUsers;
+    private final AccountService accounts;
 
     public AuthController(JwtService jwt, LoginAttemptService attempts, ShiftService shifts,
-                          KasseProperties props) {
+                          AccountService accounts) {
         this.jwt = jwt;
         this.attempts = attempts;
         this.shifts = shifts;
-        this.groupPasswords = props.getPasswordsByGroup();
-        this.adminUsers = props.getPasswordsByAdmin();
+        this.accounts = accounts;
     }
 
     public record LoginRequest(
@@ -72,13 +70,16 @@ public class AuthController {
                     throw new ResponseStatusException(BAD_REQUEST, "Gruppe fehlt");
                 }
                 String gruppe = req.gruppe().trim();
-                String expected = groupPasswords.get(gruppe.toLowerCase(Locale.ROOT));
-                if (expected == null || !constantTimeEquals(expected, req.password())) {
-                    attempts.recordFailure(targetKey);
-                    attempts.recordFailure(ipKey);
-                    throw new ResponseStatusException(UNAUTHORIZED, "Falsches Gruppenpasswort");
-                }
+                Account account = accounts.authenticate(Role.VERKAUF, gruppe, req.password())
+                        .orElseThrow(() -> {
+                            attempts.recordFailure(targetKey);
+                            attempts.recordFailure(ipKey);
+                            return new ResponseStatusException(UNAUTHORIZED, "Falsches Gruppenpasswort");
+                        });
                 attempts.reset(targetKey);
+                // Use the stored spelling so receipts and exports stay consistent regardless of
+                // how the name was typed at the login form.
+                gruppe = account.getName();
                 // Refuse a spent envelope here, while the cashier is still looking at the form —
                 // failing later, once a session exists, is far harder to recover from.
                 shifts.assertUsable(req.abrechnungNr());
@@ -86,15 +87,15 @@ public class AuthController {
                 yield new LoginResponse(jwt.issue(p), new UserDto(name, gruppe, req.abrechnungNr(), "VERKAUF"));
             }
             case ADMIN -> {
-                String expected = adminUsers.get(name.toLowerCase(Locale.ROOT));
-                if (expected == null || !constantTimeEquals(expected, req.password())) {
-                    attempts.recordFailure(targetKey);
-                    attempts.recordFailure(ipKey);
-                    throw new ResponseStatusException(UNAUTHORIZED, "Falscher Admin-Login");
-                }
+                Account account = accounts.authenticate(Role.ADMIN, name, req.password())
+                        .orElseThrow(() -> {
+                            attempts.recordFailure(targetKey);
+                            attempts.recordFailure(ipKey);
+                            return new ResponseStatusException(UNAUTHORIZED, "Falscher Admin-Login");
+                        });
                 attempts.reset(targetKey);
-                KassePrincipal p = KassePrincipal.admin(name);
-                yield new LoginResponse(jwt.issue(p), new UserDto(name, null, null, "ADMIN"));
+                KassePrincipal p = KassePrincipal.admin(account.getName());
+                yield new LoginResponse(jwt.issue(p), new UserDto(account.getName(), null, null, "ADMIN"));
             }
         };
     }
@@ -117,15 +118,5 @@ public class AuthController {
     public ResponseEntity<UserDto> me(@AuthenticationPrincipal KassePrincipal p) {
         if (p == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(new UserDto(p.name(), p.gruppe(), p.abrechnungNr(), p.role().name()));
-    }
-
-    private static boolean constantTimeEquals(String a, String b) {
-        if (a == null || b == null) return false;
-        byte[] ab = a.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        byte[] bb = b.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        if (ab.length != bb.length) return false;
-        int r = 0;
-        for (int i = 0; i < ab.length; i++) r |= ab[i] ^ bb[i];
-        return r == 0;
     }
 }

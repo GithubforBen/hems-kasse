@@ -22,10 +22,20 @@ public class KasseProperties {
     private Jwt jwt = new Jwt();
     private Cors cors = new Cors();
 
-    /** Raw comma-separated "GRUPPE:passwort,GRUPPE:passwort" from KASSE_GROUP_PASSWORDS. */
+    /**
+     * Raw comma-separated "GRUPPE:passwort,GRUPPE:passwort" from KASSE_GROUP_PASSWORDS.
+     * Only used to seed the account table on first start; afterwards the admin area is
+     * the place where logins are managed.
+     */
     private String groupPasswords = "";
-    /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. */
+    /** Raw comma-separated "user:passwort,user:passwort" from KASSE_ADMIN_USERS. Seed only, see above. */
     private String adminUsers = "";
+
+    /**
+     * Key for encrypting stored account passwords (KASSE_SECRET_KEY). Changing it makes existing
+     * passwords unreadable — they then have to be regenerated in the admin area.
+     */
+    private String secretKey = "";
 
     private Epc epc = new Epc();
 

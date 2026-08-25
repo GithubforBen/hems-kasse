@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -329,6 +330,131 @@ class SmokeTest {
         mvc.perform(get("/api/shifts?abrechnungNr=999999").header("Authorization", "Bearer " + adminTok))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // ------------------------------------------------------------------
+    // Konten (Gruppen & Admins) im Admin-Bereich
+    // ------------------------------------------------------------------
+
+    @Test
+    void envLoginsAreSeededIntoTheAccountTable() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var list = mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        // Everything configured for the test profile arrived, and the listing never carries passwords.
+        assertTrue(list.contains("\"name\":\"alice\""), list);
+        assertTrue(list.contains("\"name\":\"1\""), list);
+        assertTrue(!list.contains("password"), "Die Liste darf keine Passwörter enthalten: " + list);
+    }
+
+    @Test
+    void adminCreatesAGruppeAndItCanLogInImmediately() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+
+        var created = om.readTree(mvc.perform(post("/api/accounts")
+                        .header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Gruppe 7\",\"password\":\"geheim123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.password").value("geheim123"))
+                .andReturn().getResponse().getContentAsString());
+        String id = created.get("id").asText();
+
+        // The new Gruppe works right away, and the name is stored as typed.
+        var body = login("VERKAUF", "Nina", "Gruppe 7", 301, "geheim123");
+        assertTrue(body.contains("\"gruppe\":\"Gruppe 7\""), body);
+
+        // Names are case-insensitive on login but keep their stored spelling.
+        var lower = login("VERKAUF", "Nina", "gruppe 7", 302, "geheim123");
+        assertTrue(lower.contains("\"gruppe\":\"Gruppe 7\""), lower);
+
+        // Duplicates are refused regardless of capitalisation.
+        mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"GRUPPE 7\"}"))
+                .andExpect(status().isConflict());
+
+        // A generated password comes back readable and works.
+        var reset = om.readTree(mvc.perform(post("/api/accounts/" + id + "/password")
+                        .header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        String generated = reset.get("password").asText();
+        assertTrue(generated.length() >= 8, generated);
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 7", 303, generated)))
+                .andExpect(status().isOk());
+        // …and the old one stops working.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 7", 304, "geheim123")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deactivatedAccountCannotLogIn() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        String id = om.readTree(mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"VERKAUF\",\"name\":\"Gruppe 8\",\"password\":\"geheim123\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("id").asText();
+
+        mvc.perform(patch("/api/accounts/" + id).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("VERKAUF", "Nina", "Gruppe 8", 305, "geheim123")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void slipsCarryThePasswordsAndStayOutOfCaches() throws Exception {
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var slips = mvc.perform(get("/api/accounts/slips").header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn().getResponse().getContentAsString();
+        // Reprintable at any time: the seeded password comes back in the clear.
+        assertTrue(slips.contains("\"password\":\"Passw0rd\""), slips);
+    }
+
+    @Test
+    void accountEndpointsAreAdminOnly() throws Exception {
+        String verkaufTok = token(login("VERKAUF", "Timo", "1", 306, "Passw0rd"));
+        mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + verkaufTok))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/accounts/slips").header("Authorization", "Bearer " + verkaufTok))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/accounts").header("Authorization", "Bearer " + verkaufTok)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"ADMIN\",\"name\":\"boese\",\"password\":\"hunter22\"}"))
+                .andExpect(status().isForbidden());
+        // Unauthenticated is refused too.
+        mvc.perform(get("/api/accounts/slips")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void theLastAdminCannotBeRemoved() throws Exception {
+        var om = new com.fasterxml.jackson.databind.ObjectMapper();
+        String adminTok = token(login("ADMIN", "alice", null, "adminPW1"));
+        var all = om.readTree(mvc.perform(get("/api/accounts").header("Authorization", "Bearer " + adminTok))
+                .andReturn().getResponse().getContentAsString());
+        String aliceId = null;
+        for (var n : all) if ("alice".equals(n.get("name").asText())) aliceId = n.get("id").asText();
+
+        // alice is the only admin and is the caller — both guards apply.
+        mvc.perform(delete("/api/accounts/" + aliceId).header("Authorization", "Bearer " + adminTok))
+                .andExpect(status().isConflict());
+        mvc.perform(patch("/api/accounts/" + aliceId).header("Authorization", "Bearer " + adminTok)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isConflict());
+        // Still able to log in afterwards.
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("ADMIN", "alice", null, null, "adminPW1")))
+                .andExpect(status().isOk());
     }
 
     private String login(String role, String name, String gruppe, String password) throws Exception {

@@ -210,3 +210,97 @@
   animation: toast-in .25s ease;
 }
 @keyframes toast-in{ from{ opacity:0; transform: translate(-50%, 8px) } to{ opacity:1 } }
+
+/* ============================================================
+   Konten (Gruppen & Admins)
+   ============================================================ */
+.admin-accounts .cat-item{ flex-wrap:wrap }
+.acct-btn{ padding:4px 9px; font-size:12px; white-space:nowrap }
+.acct-active{
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--ink-3); cursor:pointer;
+}
+.acct-actions{ margin:10px 8px 0; display:flex; gap:8px; flex-wrap:wrap }
+
+/* ---- Passwort-Zettel ---- */
+.slips-overlay{
+  position:fixed; inset:0; z-index:80;
+  background:rgba(24,23,15,.45);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:28px 16px; overflow:auto;
+}
+.slips-modal{
+  background:var(--bg);
+  border:1px solid var(--line-2);
+  border-radius:var(--r-lg);
+  width:min(980px,100%);
+  padding:16px;
+}
+.slips-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:10px;
+}
+.slips-note{ font-size:12.5px; color:var(--ink-3); margin:0 0 12px }
+
+.slips-sheet{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:12px;
+}
+.slip{
+  background:var(--paper);
+  border:1px solid var(--line-2);
+  border-radius:var(--r-md);
+  padding:14px;
+  display:flex; flex-direction:column; gap:10px;
+  break-inside:avoid;
+}
+.slip-brand{ font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3) }
+.slip-title{ font-size:19px; font-weight:700; color:var(--ink); margin-top:2px }
+.slip-body{ display:flex; gap:12px; align-items:center }
+.slip-qr{ width:132px; height:132px; flex:none; border-radius:6px }
+.slip-qr-empty{
+  display:grid; place-items:center;
+  border:1px dashed var(--line-2); color:var(--ink-3); font-size:12px;
+}
+.slip-creds{ display:flex; flex-direction:column; gap:8px; min-width:0 }
+.slip-field{ display:flex; flex-direction:column; gap:1px }
+.slip-label{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-3) }
+.slip-value{ font-size:15px; font-weight:600; color:var(--ink); overflow-wrap:anywhere }
+.slip-pw-block{
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:7px 10px;
+  background:var(--paper-2);
+}
+.slip-pw{
+  font-family:var(--font-mono);
+  font-size:19px; font-weight:600; letter-spacing:.06em;
+  color:var(--ink);
+  /* Generated passwords never wrap; only a very long hand-typed one may, and then
+     between characters rather than being clipped. */
+  overflow-wrap:anywhere;
+}
+.slip-inactive{ font-size:12px; color:var(--bad); font-weight:600 }
+.slip-foot{
+  display:flex; justify-content:space-between; gap:8px;
+  font-size:10.5px; color:var(--ink-3);
+  border-top:1px solid var(--line);
+  padding-top:7px;
+}
+
+/* Printing: only the slips, two per row, nothing cut across a page. */
+@media print{
+  body :not(.slips-overlay):not(.slips-overlay *){ visibility:hidden }
+  .slips-overlay{
+    position:static; padding:0; background:none; overflow:visible; display:block;
+  }
+  .slips-overlay *{ visibility:visible }
+  .slips-modal{ border:none; background:none; width:auto; padding:0 }
+  .slips-bar, .slips-note{ display:none }
+  .slips-sheet{ grid-template-columns:repeat(2,1fr); gap:8mm }
+  .slip{ border:1px dashed #999; padding:8mm; background:none }
+  .slip-qr{ width:34mm; height:34mm }
+  .slip-pw-block{ background:none }
+  @page{ margin:12mm }
+}

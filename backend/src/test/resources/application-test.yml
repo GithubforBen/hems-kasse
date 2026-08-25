@@ -28,6 +28,7 @@ kasse:
     ttl-hours: 1
   cors:
     origins: http://localhost:3000
+  secret-key: test-secret-key-for-account-encryption-32+
   group-passwords: "1:Passw0rd,2:Görner,3:pw3,4:pw4,5:pw5"
   admin-users: alice:adminPW1
   epc:

@@ -5,7 +5,7 @@ Ein Kassensystem für Schulkuchen-Verkäufe — basierend auf dem Claude-Design-
 - **Frontend:** Nuxt 3 (Vue 3, TypeScript, Pinia)
 - **Backend:** Spring Boot 3.3, Java 21, Spring Security + JWT, JPA, Flyway
 - **Datenbank:** PostgreSQL (H2 nur für Tests)
-- **Login:** Gruppen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — beide aus `.env`
+- **Login:** Gruppen-Passwörter für Verkäufer:innen, persönliche Passwörter für Admins — im Admin-Bereich verwaltet
 - **Abrechnungs-Nr.:** beim Login wird die Nummer des Geldumschlags eingegeben; jede Abrechnung hängt an genau einem Umschlag
 - **Karte = SEPA-Überweisung per EPC-QR (Girocode)** — der Backend rendert das PNG selbst (ZXing)
 - **Schichthistorie:** Jede Person sieht eigene Abschlüsse, Admin sieht alle (mit Filtern)
@@ -30,7 +30,7 @@ hems-kasse/
 
 ```bash
 cp .env.example .env
-# .env bearbeiten: KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
+# .env bearbeiten: KASSE_SECRET_KEY, KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET,
 #                   KASSE_EPC_NAME / KASSE_EPC_IBAN, optional POSTGRES_PASSWORD …
 
 docker compose up --build
@@ -64,7 +64,7 @@ Mehrere Hosts? Setze `NUXT_PUBLIC_API_BASE` und `KASSE_CORS_ORIGINS` in der `.en
 ```bash
 cd backend
 cp .env.example .env
-# .env anpassen: KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
+# .env anpassen: KASSE_SECRET_KEY, KASSE_GROUP_PASSWORDS, KASSE_ADMIN_USERS, KASSE_JWT_SECRET, KASSE_EPC_*
 
 # Postgres bereitstellen (lokal)
 createdb kasse
@@ -74,6 +74,35 @@ mvn spring-boot:run
 ```
 
 Flyway erzeugt die Tabellen automatisch und legt die Standard-Kategorien (Kuchen, Muffins & Kekse, Herzhaft, Getränke) inklusive Produkten aus dem Prototyp an.
+
+### Gruppen & Logins (Admin-Bereich)
+
+Unter **Admin → Gruppen & Logins** legen Administratoren Gruppen und weitere Admin-Konten an,
+benennen sie um, deaktivieren sie und vergeben neue Passwörter.
+
+- Beim Anlegen einer Gruppe wird automatisch ein Passwort erzeugt (10 Zeichen, ohne die leicht
+  zu verwechselnden `0/O`, `1/l/I`) und sofort der Passwort-Zettel geöffnet.
+- **Passwort-Zettel** lassen sich jederzeit neu drucken — einzeln oder gesammelt für alle
+  Gruppen bzw. alle Konten. Jeder Zettel zeigt Name, Passwort im Klartext und einen QR-Code.
+- Der **QR-Code** öffnet die Kasse mit vorausgefüllter Gruppe und Passwort. An der Kasse müssen
+  nur noch Name und Abrechnungs-Nr. eingetragen werden. Die Zugangsdaten stehen im
+  URL-Fragment (`#login=…`), das vom Browser nie an den Server geschickt wird — sie landen also
+  in keinem Server- oder Proxy-Log. Die Login-Seite entfernt sie sofort aus der Adresszeile.
+- Ein **neues Passwort macht alte Zettel ungültig** — der QR-Code darauf funktioniert nicht mehr.
+- Das letzte aktive Admin-Konto lässt sich weder löschen noch deaktivieren, und niemand kann sein
+  eigenes Konto löschen. Damit kann sich niemand selbst aussperren.
+- Gelöschte Gruppen ändern nichts an der Historie: Schichten speichern den Gruppennamen als Text.
+
+**Speicherung:** Die Passwörter liegen AES-256-GCM-verschlüsselt in der Datenbank (Schlüssel:
+`KASSE_SECRET_KEY`), damit Zettel jederzeit nachgedruckt werden können. Ein Datenbank-Backup
+allein gibt sie nicht preis; wer Datenbank **und** Schlüssel hat, kann sie lesen. Wird
+`KASSE_SECRET_KEY` nachträglich geändert, sind alle gespeicherten Passwörter unlesbar und müssen
+im Admin-Bereich neu erzeugt werden.
+
+**Erstbefüllung:** Beim ersten Start werden `KASSE_GROUP_PASSWORDS` und `KASSE_ADMIN_USERS` in die
+Datenbank übernommen, damit bestehende Installationen weiterlaufen. Danach ist die Datenbank
+maßgeblich — im Admin-Bereich geänderte Passwörter werden von den `.env`-Werten nicht wieder
+überschrieben. Existiert noch kein Konto mit dem Namen aus der `.env`, wird es beim Start ergänzt.
 
 ### Abrechnungs-Nr. (Geldumschläge)
 
@@ -98,7 +127,11 @@ Umschlag an.
 ### Konfiguration (`.env`)
 
 ```
+# Verschlüsselt die Konto-Passwörter (≥ 32 Zeichen) — `openssl rand -base64 48`
+KASSE_SECRET_KEY=...
+
 # Gruppen-Passwörter (Verkauf): GRUPPE:passwort, GRUPPE:passwort
+# Nur Erstbefüllung — danach werden Logins im Admin-Bereich verwaltet.
 KASSE_GROUP_PASSWORDS=1:Passw0rd,2:Görner
 
 # Admin-Logins: user:passwort, user:passwort
@@ -155,6 +188,12 @@ Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statische
 | GET  | `/api/shifts?from&to&gruppe&abrechnungNr&q` | ADMIN | alle Schichten |
 | GET  | `/api/sales` | jeder eingeloggt | Verkäufe der aktuellen Schicht |
 | POST | `/api/sales` | jeder eingeloggt | Verkauf buchen (Server prüft Totals) |
+| GET  | `/api/accounts` | ADMIN | Gruppen & Admin-Logins (ohne Passwörter) |
+| POST | `/api/accounts` | ADMIN | Konto anlegen (leeres Passwort ⇒ erzeugt) |
+| PATCH| `/api/accounts/{id}` | ADMIN | umbenennen / aktivieren |
+| POST | `/api/accounts/{id}/password` | ADMIN | Passwort setzen oder erzeugen |
+| DELETE | `/api/accounts/{id}` | ADMIN | Konto löschen |
+| GET  | `/api/accounts/slips?ids=…` | ADMIN | Zetteldaten inkl. Klartext-Passwort |
 | GET  | `/api/me/pref`, PUT | jeder eingeloggt | Theme-Pref |
 | GET  | `/api/payments/epc-qr.png?amountCents=…` | jeder eingeloggt | EPC-QR PNG |
 | GET  | `/api/payments/epc-payload?amountCents=…` | jeder eingeloggt | Roher EPC-Text (Debug) |

@@ -8,6 +8,25 @@ export interface AuthUser {
   role: Role
 }
 
+/** A Gruppe or admin login, as managed in the admin area. Never carries a password. */
+export interface AccountDto {
+  id: string
+  role: Role
+  name: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** An account plus its readable password — everything a Passwort-Zettel needs. */
+export interface SlipDto {
+  id: string
+  role: Role
+  name: string
+  active: boolean
+  password: string
+}
+
 export interface ComponentDto {
   productId: string | null
   name: string

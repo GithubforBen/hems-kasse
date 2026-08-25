@@ -23,7 +23,7 @@ onMounted(() => {
   register.fetch().catch(() => {})
 })
 
-const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('catalog')
+const tab = ref<'catalog' | 'registers' | 'accounts' | 'inventory' | 'stats' | 'shifts'>('catalog')
 </script>
 
 <template>
@@ -49,6 +49,10 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
           @click="tab = 'inventory'">Lager</button>
         <button
           class="btn"
+          :class="tab === 'accounts' ? '' : 'ghost'"
+          @click="tab = 'accounts'">Gruppen & Logins</button>
+        <button
+          class="btn"
           :class="tab === 'stats' ? '' : 'ghost'"
           style="padding:7px 14px;font-size:13px;white-space:nowrap;flex-shrink:0"
           @click="tab = 'stats'">Statistiken</button>
@@ -62,6 +66,7 @@ const tab = ref<'catalog' | 'registers' | 'inventory' | 'stats' | 'shifts'>('cat
       <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
         <AdminCatalog v-if="tab === 'catalog'" />
         <AdminRegisters v-else-if="tab === 'registers'" />
+        <AdminAccounts v-else-if="tab === 'accounts'" />
         <AdminInventory v-else-if="tab === 'inventory'" />
         <AdminStats v-else-if="tab === 'stats'" />
 
