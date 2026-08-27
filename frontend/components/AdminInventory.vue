@@ -62,11 +62,26 @@ async function submitCount() {
 }
 
 // ---------- Wareneingang erfassen ----------
-interface IntakeLine { productId: string; name: string; qty: number }
+/** `qty` stays raw text so a half-typed or cleared field never silently becomes a 1. */
+interface IntakeLine { productId: string; name: string; qty: string }
 const intakeLines = ref<IntakeLine[]>([])
 const intakePickerId = ref('')
 const intakeNotes = ref('')
 const intakeSaving = ref(false)
+
+const MAX_INTAKE_QTY = 999999
+
+/** Whole number from 1 up — "", "0", "1.5" and "12a" all come back null. */
+function parseIntakeQty(raw: string): number | null {
+  const t = raw.trim()
+  if (!/^\d{1,6}$/.test(t)) return null
+  const n = Number(t)
+  return n >= 1 ? n : null
+}
+
+const intakeComplete = computed(() =>
+  intakeLines.value.length > 0 && intakeLines.value.every(l => parseIntakeQty(l.qty) !== null)
+)
 
 const intakePickable = computed(() =>
   trackable.value
@@ -77,23 +92,37 @@ const intakePickable = computed(() =>
 function addIntakeLine() {
   const p = intakePickable.value.find(x => x.id === intakePickerId.value)
   if (!p) return
-  intakeLines.value.push({ productId: p.id, name: p.name, qty: 1 })
+  intakeLines.value.push({ productId: p.id, name: p.name, qty: '1' })
   intakePickerId.value = ''
+  // Jump straight into the amount — that is what gets typed next.
+  nextTick(() => {
+    const el = document.getElementById(`intake-qty-${p.id}`) as HTMLInputElement | null
+    el?.select()
+  })
 }
 function removeIntakeLine(id: string) {
   intakeLines.value = intakeLines.value.filter(l => l.productId !== id)
 }
 function incIntake(id: string, delta: number) {
   const l = intakeLines.value.find(x => x.productId === id)
-  if (l) l.qty = Math.max(1, l.qty + delta)
+  if (!l) return
+  const cur = parseIntakeQty(l.qty) ?? 0
+  l.qty = String(Math.min(MAX_INTAKE_QTY, Math.max(1, cur + delta)))
+}
+/** Digits only, so a stray letter or a pasted barcode can't land in the field. */
+function onIntakeQtyInput(l: IntakeLine, e: Event) {
+  const el = e.target as HTMLInputElement
+  const cleaned = el.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 6)
+  if (el.value !== cleaned) el.value = cleaned
+  l.qty = cleaned
 }
 
 async function submitIntake() {
-  if (intakeLines.value.length === 0) return
+  if (!intakeComplete.value) return
   intakeSaving.value = true
   try {
     await inventory.recordIntake(
-      intakeLines.value.map(l => ({ productId: l.productId, qty: l.qty })),
+      intakeLines.value.map(l => ({ productId: l.productId, qty: parseIntakeQty(l.qty)! })),
       intakeNotes.value || undefined,
     )
     toast.show(`Wareneingang gespeichert · ${intakeLines.value.length} Produkt(e)`)
@@ -182,9 +211,22 @@ function diffClass(d: number): string {
         <div v-for="l in intakeLines" :key="l.productId" class="pcm-line">
           <span class="pcm-name">{{ l.name }}</span>
           <div class="pcm-qty">
-            <button class="btn ghost" @click="incIntake(l.productId, -1)">−</button>
-            <span class="pcm-qty-v">{{ l.qty }}×</span>
-            <button class="btn ghost" @click="incIntake(l.productId, 1)">+</button>
+            <button class="btn ghost" @click="incIntake(l.productId, -1)" title="Eins weniger">−</button>
+            <input
+              :id="`intake-qty-${l.productId}`"
+              class="input intake-qty-i"
+              :class="{ bad: parseIntakeQty(l.qty) === null }"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="6"
+              :aria-label="`Menge ${l.name}`"
+              :value="l.qty"
+              @input="onIntakeQtyInput(l, $event)"
+              @focus="($event.target as HTMLInputElement).select()"
+              @keydown.enter="($event.target as HTMLInputElement).blur()" />
+            <span class="pcm-qty-x">×</span>
+            <button class="btn ghost" @click="incIntake(l.productId, 1)" title="Eins mehr">+</button>
           </div>
           <button class="btn ghost pcm-rm" @click="removeIntakeLine(l.productId)" title="Entfernen">✕</button>
         </div>
@@ -198,9 +240,13 @@ function diffClass(d: number): string {
         <button class="btn secondary" :disabled="!intakePickerId" @click="addIntakeLine">+ hinzufügen</button>
       </div>
 
+      <p v-if="intakeLines.length && !intakeComplete" class="lager-invalid">
+        Jede Zeile braucht eine ganze Menge ab 1.
+      </p>
+
       <div class="lager-form-row">
         <input class="input" style="flex:1" v-model="intakeNotes" placeholder="Notiz (optional, z. B. Lieferant)" />
-        <button class="btn ok" :disabled="intakeSaving || intakeLines.length === 0" @click="submitIntake">
+        <button class="btn ok" :disabled="intakeSaving || !intakeComplete" @click="submitIntake">
           {{ intakeSaving ? 'Speichern…' : 'Wareneingang speichern' }}
         </button>
       </div>
@@ -323,7 +369,38 @@ function diffClass(d: number): string {
 }
 .pcm-name { flex: 1; font-weight: 600; }
 .pcm-qty { display: flex; align-items: center; gap: 6px; }
-.pcm-qty-v { min-width: 32px; text-align: center; font-variant-numeric: tabular-nums; }
+.pcm-qty-x { color: var(--ink-3); font-size: 13px; }
+.intake-qty-i {
+  width: 76px;
+  padding: 6px 9px;
+  font-size: 15px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.intake-qty-i.bad {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+.lager-invalid {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--bad);
+}
+.btn:disabled {
+  background: var(--paper-3);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* Phones: product and remove button on top, the amount controls on their own
+   full-width row below — the field would be unusably narrow otherwise. */
+@media (max-width: 640px) {
+  .pcm-line { flex-wrap: wrap; row-gap: 8px; }
+  .pcm-name { flex: 1; order: 0; }
+  .pcm-rm { order: 1; }
+  .pcm-qty { flex: 1 0 100%; order: 2; }
+  .intake-qty-i { flex: 1; width: auto; min-width: 0; }
+}
 .pcm-rm { padding: 2px 8px; }
 .lager-history {
   display: flex;
