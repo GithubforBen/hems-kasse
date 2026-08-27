@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Schulkasse">
+  <!-- Geometry identical to the PNG icons (see icon-512.png). The K is drawn from
+       primitives rather than <text> so it looks the same without Inter installed. -->
   <rect width="512" height="512" rx="96" fill="#18170f"/>
-  <text x="256" y="362" text-anchor="middle" font-family="Inter,'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="300" font-weight="700" fill="#ffffff">K</text>
+  <clipPath id="k"><rect x="152.166" y="122.88" width="207.667" height="266.24"/></clipPath>
+  <g clip-path="url(#k)" fill="#ffffff" stroke="#ffffff" stroke-width="46.592" stroke-linecap="round">
+    <rect x="152.166" y="122.88" width="46.592" height="266.24" stroke="none"/>
+    <line x1="194.099" y1="266.650" x2="359.833" y2="122.880"/>
+    <line x1="194.099" y1="256.000" x2="359.833" y2="389.120"/>
+  </g>
 </svg>

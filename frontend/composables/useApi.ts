@@ -4,6 +4,8 @@ import type { FetchOptions } from 'ofetch'
  * Centralised $fetch wrapper.
  *
  * - Injects `Authorization: Bearer <token>` from the auth store on every request.
+ * - Reports network reachability to `useOnline()` so the offline banner reflects the
+ *   API, not just `navigator.onLine`.
  * - On 401, clears auth and redirects to /login.
  * - On 409 from the current-shift endpoints, ends the session the same way: the token names an
  *   Abrechnung that can no longer be booked into (it was closed, or the envelope is running at
@@ -27,6 +29,14 @@ export const useApi = () => {
         if (registerId) headers.set('X-Kasse-Register-Id', registerId)
         options.headers = headers
       }
+    },
+    onRequestError() {
+      // The request never reached the server (no network, DNS, CORS preflight …).
+      markServerUnreachable()
+    },
+    onResponse() {
+      // A response came back — the server is alive, 4xx/5xx included.
+      markServerReachable()
     },
     async onResponseError({ request, response }) {
       if (response?.status === 401) {

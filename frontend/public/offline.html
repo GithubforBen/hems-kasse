@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Offline · Schulkasse</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <!-- Service worker fallback: only reached when not even the app shell is cached.
+       Deliberately free of external fonts and scripts. -->
+  <style>
+    :root{
+      --bg:#f3efe7; --paper:#fff; --ink:#18170f; --ink-2:#5d564a; --ink-3:#8d8676;
+      --line:#e6e0d3;
+    }
+    *{ box-sizing:border-box }
+    html,body{ height:100%; margin:0 }
+    body{
+      display:grid; place-items:center; padding:24px;
+      background:var(--bg); color:var(--ink);
+      font-family:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased; letter-spacing:-.005em;
+    }
+    .card{
+      width:100%; max-width:380px; padding:28px 24px; text-align:center;
+      background:var(--paper); border:1px solid var(--line); border-radius:12px;
+      box-shadow:0 1px 0 rgba(20,18,12,.03), 0 6px 18px -10px rgba(20,18,12,.15);
+    }
+    .mark{
+      width:48px; height:48px; margin:0 auto 16px; display:grid; place-items:center;
+      background:var(--ink); color:var(--paper); border-radius:10px;
+      font-size:22px; font-weight:700;
+    }
+    h1{ margin:0 0 8px; font-size:18px; font-weight:650 }
+    p{ margin:0 0 6px; font-size:13.5px; line-height:1.55; color:var(--ink-2) }
+    .hint{ font-size:12.5px; color:var(--ink-3); margin-top:14px }
+    button{
+      margin-top:20px; width:100%; padding:13px 18px;
+      background:var(--ink); color:var(--paper); border:0; border-radius:12px;
+      font:inherit; font-size:15px; font-weight:550; cursor:pointer;
+    }
+    button:active{ transform:translateY(1px) }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true">K</div>
+    <h1>Keine Verbindung</h1>
+    <p>Die Kasse erreicht den Server gerade nicht.</p>
+    <p>Verkäufe werden immer direkt gebucht — ohne Netz lässt sich nichts kassieren.</p>
+    <button type="button" onclick="location.reload()">Erneut versuchen</button>
+    <p class="hint">Die Seite lädt automatisch neu, sobald die Verbindung zurück ist.</p>
+  </main>
+  <script>
+    // As soon as the browser reports being back online, return to the app.
+    addEventListener('online', function () { location.replace('/') })
+  </script>
+</body>
+</html>

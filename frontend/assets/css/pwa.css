@@ -1,0 +1,68 @@
+/* ============================================================
+   PWA — install, update and connection banners
+   ============================================================
+
+   One fixed stack under the topbar, right-aligned. It sits above the modals
+   (z-index 50) because the connection warning matters most precisely while a
+   payment dialog is open; the toast (80) still wins over everything.
+   ============================================================ */
+
+.pwa-stack{
+  position:fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 62px);
+  right: 14px;
+  width: min(340px, calc(100vw - 28px));
+  display:flex; flex-direction:column; gap:8px;
+  z-index:70;
+  pointer-events:none;   /* the empty stack must not swallow clicks */
+}
+.pwa-stack > *{ pointer-events:auto }
+
+.pwa-card{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-left:3px solid var(--accent);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lift);
+  padding:12px 14px;
+  animation: pwa-in .22s ease;
+}
+.pwa-card.bad{
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+  border-color: color-mix(in oklab, var(--bad) 22%, var(--line));
+}
+
+.pwa-head{
+  display:flex; align-items:center; gap:8px;
+  font-size:13.5px; font-weight:650;
+  color:var(--ink);
+}
+.pwa-ico{ font-size:15px; line-height:1 }
+
+.pwa-text{
+  margin:6px 0 0;
+  font-size:12.5px; line-height:1.5;
+  color:var(--ink-2);
+}
+
+.pwa-actions{ display:flex; gap:8px; margin-top:10px }
+.pwa-btn{ padding:7px 12px; font-size:13px; border-radius: var(--r-sm) }
+
+@keyframes pwa-in{
+  from{ opacity:0; transform: translateY(-6px) }
+  to  { opacity:1; transform: none }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .pwa-card{ animation:none }
+}
+
+/* Phones: full width under the topbar rather than a narrow card in the corner. */
+@media (max-width: 640px){
+  .pwa-stack{
+    left: 10px; right: 10px;
+    width:auto;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+  }
+}

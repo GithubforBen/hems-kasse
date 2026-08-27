@@ -17,10 +17,15 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
         { name: 'apple-mobile-web-app-title', content: 'Schulkasse' },
         { name: 'theme-color', content: '#f3efe7' },
+        { name: 'application-name', content: 'Schulkasse' },
+        { name: 'description', content: 'Kassensystem für den Kuchenverkauf' },
       ],
       link: [
         { rel: 'manifest', href: '/manifest.webmanifest' },
-        { rel: 'apple-touch-icon', href: '/icon.svg' },
+        // Safari ignores SVG here, so the home-screen icon has to be a PNG.
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' },
       ],
     },
   },
@@ -34,6 +39,7 @@ export default defineNuxtConfig({
     '~/assets/css/report.css',
     '~/assets/css/admin.css',
     '~/assets/css/mobile.css',
+    '~/assets/css/pwa.css',
   ],
 
   // The backend already sets these on API responses; mirror them on the app shell
@@ -45,6 +51,17 @@ export default defineNuxtConfig({
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'no-referrer',
       },
+    },
+    // The worker must never be served from cache, otherwise a deploy can't reach
+    // devices that already have the old one. Scope header lets it control '/'.
+    '/sw.js': {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Service-Worker-Allowed': '/',
+      },
+    },
+    '/manifest.webmanifest': {
+      headers: { 'Cache-Control': 'no-cache' },
     },
   },
 

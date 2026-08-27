@@ -11,4 +11,11 @@ if (import.meta.client) {
 <template>
   <NuxtPage />
   <Toast />
+
+  <!-- PWA notices: one stack for all three so they never overlap. -->
+  <div class="pwa-stack">
+    <PwaOfflineBanner />
+    <PwaUpdateBanner />
+    <PwaInstallBanner />
+  </div>
 </template>

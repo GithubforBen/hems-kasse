@@ -9,6 +9,7 @@ Ein Kassensystem für Schulkuchen-Verkäufe — basierend auf dem Claude-Design-
 - **Abrechnungs-Nr.:** beim Login wird die Nummer des Geldumschlags eingegeben; jede Abrechnung hängt an genau einem Umschlag
 - **Karte = SEPA-Überweisung per EPC-QR (Girocode)** — der Backend rendert das PNG selbst (ZXing)
 - **Schichthistorie:** Jede Person sieht eigene Abschlüsse, Admin sieht alle (mit Filtern)
+- **PWA:** installierbar auf Tablet und Handy, Oberfläche startet auch ohne Netz — Buchungen brauchen weiterhin den Server ([Details](#progressive-web-app))
 
 ## Projektstruktur
 
@@ -23,7 +24,8 @@ hems-kasse/
     ├── package.json
     ├── nuxt.config.ts
     ├── .env.example
-    └── app.vue, pages/, components/, stores/, utils/, assets/css/
+    ├── public/              # Manifest, Service Worker, Icons, Offline-Seite
+    └── app.vue, pages/, components/, composables/, plugins/, stores/, utils/, assets/css/
 ```
 
 ## Schnellstart mit Docker (empfohlen)
@@ -171,6 +173,69 @@ pnpm dev
 
 Produktion: `pnpm build` und `node .output/server/index.mjs` (oder als statisches SPA mit `pnpm generate`).
 
+## Progressive Web App
+
+Die Kasse ist **zusätzlich** zur normalen Website eine installierbare PWA — dieselbe
+Anwendung, dieselbe URL. Wer sie im Browser aufruft, bekommt weiterhin die Website;
+wer sie installiert, bekommt sie als eigene App im Vollbild.
+
+### Installieren
+
+- **Android / Chrome / Edge:** Ein Banner rechts oben bietet die Installation an.
+  Alternativ über das Browsermenü → „App installieren“.
+- **iPhone / iPad (Safari):** Safari kennt keinen Installationsdialog. Das Banner zeigt
+  deshalb die Schritte: **Teilen** → **„Zum Home-Bildschirm“**.
+- **Desktop (Chrome / Edge):** Symbol in der Adressleiste oder das Banner.
+
+„Später“ blendet das Banner für 14 Tage aus (gemerkt in `localStorage`).
+
+### Was offline funktioniert — und was nicht
+
+Der Service Worker (`frontend/public/sw.js`) cacht **nur die Oberfläche**: App-Shell,
+Build-Assets, Icons, Schriften. Kassendaten laufen bewusst nie durch den Cache.
+
+| | ohne Netz |
+| --- | --- |
+| App startet, Login-Maske erscheint | ✅ |
+| Anmelden, Verkauf buchen, Abschluss, Lager, Exporte | ❌ — braucht den Server |
+
+Das ist Absicht: ein Verkauf muss beim Server ankommen oder **sichtbar fehlschlagen**.
+Ein Bon, den eine Offline-Warteschlange nur scheinbar bestätigt, wäre in der
+Abrechnung nicht wiederzufinden. Bricht die Verbindung weg, erscheint rechts oben eine
+Warnung — sie unterscheidet „Gerät offline“ von „Server antwortet nicht“ und liegt
+absichtlich über den Bezahl-Dialogen.
+
+Beim ersten Aufruf werden App-Shell und Einstiegsbundle vorgeladen. Seiten, die noch
+nie geöffnet wurden, laden ihren Code beim ersten Besuch nach — wer eine Unterseite
+offline braucht, sollte sie also einmal online geöffnet haben.
+
+### Updates
+
+Ein neuer Build wird nicht stillschweigend aktiviert. Der wartende Service Worker meldet
+sich über das Banner „Neue Version verfügbar“; erst ein Klick auf **Neu laden**
+übernimmt sie. So lädt die Kasse nie mitten im Verkauf neu — ein offener Warenkorb
+läge sonst daneben. Geprüft wird beim Tab-Wechsel und stündlich.
+
+**Beim Deployment:** `VERSION` in `frontend/public/sw.js` erhöhen. Alte Caches werden
+dann beim Aktivieren gelöscht.
+
+### Voraussetzungen beim Betrieb
+
+- **HTTPS ist Pflicht** (Ausnahme: `localhost`). Ohne sicheren Kontext registriert der
+  Browser keinen Service Worker und bietet keine Installation an — die Website
+  funktioniert weiterhin, die PWA-Funktionen fallen still aus.
+- `/sw.js` muss mit `Cache-Control: no-cache` ausgeliefert werden, sonst erreichen
+  Updates Geräte mit altem Worker nicht. Der Nitro-Server setzt das über `routeRules`
+  in `nuxt.config.ts`; **liegt ein nginx oder CDN davor, dort ebenfalls sicherstellen.**
+- Im Dev-Server (`pnpm dev`) wird kein Worker registriert; ein vorhandener wird
+  abgemeldet, damit HMR nicht gegen alte Caches läuft.
+
+### Icons
+
+`frontend/public/` enthält `icon.svg` sowie PNGs in 192/512 (`any` und `maskable`) und
+ein `apple-touch-icon.png` (180 px, randlos — iOS beschneidet selbst). Alle zeigen
+dieselbe Geometrie; erzeugt wurden die PNGs aus dem Marken-K.
+
 ## REST-Endpoints (Kurzüberblick)
 
 | Methode | Pfad | Rolle | Beschreibung |
@@ -251,6 +316,7 @@ curl -s "localhost:8080/api/payments/epc-payload?amountCents=350" \
 - JWTs sind kurzlebig (Default 12 h, konfigurierbar) und werden im Browser in einem `SameSite=Lax`-Cookie + In-Memory-Mirror gehalten.
 - Geldbeträge laufen serverseitig als ganzzahlige Cents — keine Float-Drift.
 - Karten-Stage = SEPA-Überweisung per QR — die UI bestätigt erst nach „Zahlung erhalten" durch das Personal; eine Webhook-Bestätigung der Bank gibt es (noch) nicht.
+- Der Service Worker cacht ausschließlich die Oberfläche. API-Antworten, Tokens und Kassendaten landen nie im Cache — ein geteiltes Tablet gibt über den Cache also nichts aus einer fremden Schicht preis.
 
 ## Lizenz
 
